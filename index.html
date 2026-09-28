@@ -8,7 +8,7 @@
         :root { --primary: #059669; --primary-hover: #047857; --bg: #F3F4F6; --card-bg: #FFFFFF; --text-main: #1F2937; --text-muted: #6B7280; --border: #D1D5DB; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg); color: var(--text-main); line-height: 1.5; padding: 1rem; }
-        .container { max-width: 600px; margin: 0 auto; }
+        .container { max-width: 650px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 1.5rem; padding-top: 1rem; }
         .header h1 { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
         .card { background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1rem; border: 1px solid var(--border); }
@@ -23,15 +23,19 @@
         button.btn:disabled { background-color: #9CA3AF; cursor: not-allowed; }
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-        .stat-box { background: #F9FAFB; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
+        .stat-box { background: #F9FAFB; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; position: relative; }
         .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
-        .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 0.25rem; }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 0.25rem; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        
+        /* 排名徽章樣式 */
+        .rank-badge { background-color: #FEF3C7; color: #B45309; padding: 2px 6px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; }
 
         .data-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.875rem; }
         .data-table th, .data-table td { padding: 0.75rem 0.5rem; text-align: center; border-bottom: 1px solid var(--border); }
         .data-table th { color: var(--text-muted); font-weight: 600; background: #F9FAFB; }
         
-        #dashboard-view, #loading-view, #leaderboard-view { display: none; }
+        /* 預設隱藏所有視圖，靠 JS 判斷顯示，防止畫面閃爍跳轉 */
+        #form-view, #dashboard-view, #loading-view, #leaderboard-view { display: none; }
         .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
@@ -64,10 +68,22 @@
     <!-- 狀態三：個人統計儀表板 -->
     <div id="dashboard-view">
         <div class="stat-grid">
-            <div class="stat-box"><div class="stat-value" id="s-games">0</div><div class="stat-label">總參與場數</div></div>
-            <div class="stat-box"><div class="stat-value" id="s-score">0 / 0.00</div><div class="stat-label">總積分 / 場均積分</div></div>
-            <div class="stat-box"><div class="stat-value" id="s-first">0 (0%)</div><div class="stat-label">第一名次數</div></div>
-            <div class="stat-box"><div class="stat-value" id="s-top2">0 (0%)</div><div class="stat-label">前兩名次數</div></div>
+            <div class="stat-box">
+                <div class="stat-value" id="s-games">0</div>
+                <div class="stat-label">總參與場數</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="s-score">0 / 0.00</div>
+                <div class="stat-label">總分 / 場均 <span class="rank-badge" id="r-avg"></span></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="s-first">0 (0%)</div>
+                <div class="stat-label">第一名機率 <span class="rank-badge" id="r-first"></span></div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="s-top2">0 (0%)</div>
+                <div class="stat-label">前兩名機率 <span class="rank-badge" id="r-top2"></span></div>
+            </div>
         </div>
         
         <div class="card table-wrapper">
@@ -82,6 +98,9 @@
 
     <!-- 狀態四：總體排行榜 -->
     <div id="leaderboard-view">
+        <p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:-1rem; margin-bottom:1.5rem;">
+            *整體排名系統預設依照「場均積分」排序
+        </p>
         <div class="card table-wrapper">
             <table class="data-table">
                 <thead>
@@ -89,8 +108,9 @@
                         <th style="text-align:left; padding-left:1rem;">玩家</th>
                         <th>場數</th>
                         <th>總積分</th>
-                        <th>場均</th>
-                        <th>勝率(1st)</th>
+                        <th style="color:var(--primary);">場均</th>
+                        <th>Top 2 (%)</th>
+                        <th>1st (%)</th>
                     </tr>
                 </thead>
                 <tbody id="leaderboard-list"></tbody>
@@ -101,7 +121,7 @@
 
 <script>
     // ⚠️ 請在此處填入您 Google Apps Script 的網址
-    const API_URL = "https://script.google.com/macros/s/AKfycbxzAFhGMNmA2flRKE_Wm5bHpFFMrhbxyByDinELomlWD-JU6pMzXn54W-Wv3vfxBB54Bg/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycby65isH_e_uNLh8JtlFP1FiuDajR_EuoJ5VLLS4PmeHhykk4rbqg7HkDLLe3rWZt_WKwg/exec"; 
     
     const PLAYERS = ["bala", "bob", "duck", "Neil", "DHYellow", "PG"];
 
@@ -116,11 +136,13 @@
         const playerHash = urlParams.get('p');
 
         if (playerHash) {
-            document.getElementById('form-view').style.display = 'none';
+            // 如果有 Hash，直接顯示 Loading (不會閃過輸入表單)
             document.getElementById('loading-view').style.display = 'block';
-            
-            document.getElementById('page-title').innerText = playerHash === "p_leaderboard" ? "資料結算中..." : "個人數據儀表板";
+            document.getElementById('page-title').innerText = playerHash === "p_leaderboard" ? "資料結算中..." : "讀取個人數據...";
             fetchDashboard(playerHash);
+        } else {
+            // 如果沒有 Hash，代表是首頁，顯示輸入表單
+            document.getElementById('form-view').style.display = 'block';
         }
     };
 
@@ -178,6 +200,7 @@
                 return;
             }
 
+            // 處理總體排行榜視圖
             if (data.isLeaderboard) {
                 document.getElementById('leaderboard-view').style.display = 'block';
                 document.getElementById('page-title').innerText = "👑 賽季積分總榜";
@@ -189,8 +212,9 @@
                         <tr>
                             <td style="text-align:left; padding-left:1rem; font-weight:700;">${medal} ${p.name}</td>
                             <td>${p.totalGames}</td>
-                            <td style="color:var(--primary); font-weight:800; font-size:1.1rem;">${p.totalScore}</td>
-                            <td style="font-weight:600;">${p.avgScore}</td>
+                            <td>${p.totalScore}</td>
+                            <td style="color:var(--primary); font-weight:800; font-size:1.1rem;">${p.avgScore}</td>
+                            <td>${p.top2Pct}%</td>
                             <td>${p.firstPct}%</td>
                         </tr>
                     `;
@@ -198,8 +222,14 @@
                 return;
             }
 
+            // 處理個人專屬視圖
             document.getElementById('dashboard-view').style.display = 'block';
             document.getElementById('page-title').innerText = `📊 ${data.name} 的專屬儀表板`;
+            
+            // 填入排名 Badge 與基礎數據
+            document.getElementById('r-avg').innerText = `第 ${data.rankAvg} 名`;
+            document.getElementById('r-first').innerText = `第 ${data.rankFirst} 名`;
+            document.getElementById('r-top2').innerText = `第 ${data.rankTop2} 名`;
             
             document.getElementById('s-games').innerText = data.totalGames;
             document.getElementById('s-score').innerText = `${data.totalScore} / ${data.avgScore}`;
@@ -218,6 +248,10 @@
                     </tr>
                 `;
             }
+        })
+        .catch(err => {
+            document.getElementById('loading-view').style.display = 'none';
+            document.getElementById('page-title').innerText = "❌ 網路連線錯誤，無法取得數據";
         });
     }
 </script>

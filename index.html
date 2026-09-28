@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>休閒計分系統</title>
+    <style>
+        :root { --primary: #059669; --primary-hover: #047857; --bg: #F3F4F6; --card-bg: #FFFFFF; --text-main: #1F2937; --text-muted: #6B7280; --border: #D1D5DB; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.5; padding: 1rem; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 1.5rem; padding-top: 1rem; }
+        .header h1 { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+        .card { background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1rem; border: 1px solid var(--border); }
+        
+        .input-group { margin-bottom: 1rem; }
+        .input-group label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .input-group input, .input-group select { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; background-color: #F9FAFB; }
+        .input-group input:focus, .input-group select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1); }
+        
+        button.btn { width: 100%; padding: 0.875rem; background-color: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        button.btn:hover { background-color: var(--primary-hover); }
+        button.btn:disabled { background-color: #9CA3AF; cursor: not-allowed; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .stat-box { background: #F9FAFB; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 0.25rem; }
+
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.875rem; }
+        .data-table th, .data-table td { padding: 0.75rem 0.5rem; text-align: center; border-bottom: 1px solid var(--border); }
+        .data-table th { color: var(--text-muted); font-weight: 600; background: #F9FAFB; }
+        
+        #dashboard-view, #loading-view, #leaderboard-view { display: none; }
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header" id="main-header">
+        <h1 id="page-title">紀錄比賽結果</h1>
+    </div>
+
+    <!-- 狀態一：讀取中 -->
+    <div id="loading-view" style="text-align:center; padding: 3rem 0; color: var(--text-muted);">
+        正在從資料庫撈取數據...
+    </div>
+
+    <!-- 狀態二：紀錄輸入頁面 -->
+    <div class="card" id="form-view">
+        <div class="input-group">
+            <label>Game ID (若重複將覆蓋舊紀錄)</label>
+            <input type="text" id="gameId" placeholder="例如: TTA_20260926_01" required>
+        </div>
+        <div class="input-group"><label>🏆 第一名 (8分)</label><select id="r1" class="player-select"></select></div>
+        <div class="input-group"><label>🥈 第二名 (5分)</label><select id="r2" class="player-select"></select></div>
+        <div class="input-group"><label>🥉 第三名 (3分)</label><select id="r3" class="player-select"></select></div>
+        <div class="input-group"><label>🎖️ 第四名 (2分)</label><select id="r4" class="player-select"></select></div>
+        <button class="btn" id="submit-btn" onclick="submitResult()">送出紀錄</button>
+        <div id="form-msg" style="text-align:center; margin-top:1rem; font-weight:600; font-size:0.9rem;"></div>
+    </div>
+
+    <!-- 狀態三：個人統計儀表板 -->
+    <div id="dashboard-view">
+        <div class="stat-grid">
+            <div class="stat-box"><div class="stat-value" id="s-games">0</div><div class="stat-label">總參與場數</div></div>
+            <div class="stat-box"><div class="stat-value" id="s-score">0 / 0.00</div><div class="stat-label">總積分 / 場均積分</div></div>
+            <div class="stat-box"><div class="stat-value" id="s-first">0 (0%)</div><div class="stat-label">第一名次數</div></div>
+            <div class="stat-box"><div class="stat-value" id="s-top2">0 (0%)</div><div class="stat-label">前兩名次數</div></div>
+        </div>
+        
+        <div class="card table-wrapper">
+            <h3 style="font-size:1rem; margin-bottom:0.5rem; text-align:center;">⚔️ 對手數據分析</h3>
+            <table class="data-table">
+                <thead><tr><th>對手</th><th>共同遊玩</th><th>對戰勝率</th></tr></thead>
+                <tbody id="opp-list"></tbody>
+            </table>
+            <p style="font-size:0.7rem; color:var(--text-muted); text-align:center; margin-top:1rem;">*對戰勝率定義：在同一局中，您的最終排名高於對手</p>
+        </div>
+    </div>
+
+    <!-- 狀態四：總體排行榜 -->
+    <div id="leaderboard-view">
+        <div class="card table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding-left:1rem;">玩家</th>
+                        <th>場數</th>
+                        <th>總積分</th>
+                        <th>場均</th>
+                        <th>勝率(1st)</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-list"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ⚠️ 請在此處填入您 Google Apps Script 的網址
+    const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE"; 
+    
+    const PLAYERS = ["bala", "bob", "duck", "Neil", "DHYellow", "PG"];
+
+    window.onload = () => {
+        const selects = document.querySelectorAll('.player-select');
+        selects.forEach(sel => {
+            sel.innerHTML = '<option value="">請選擇玩家...</option>' + 
+                            PLAYERS.map(p => `<option value="${p}">${p}</option>`).join('');
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const playerHash = urlParams.get('p');
+
+        if (playerHash) {
+            document.getElementById('form-view').style.display = 'none';
+            document.getElementById('loading-view').style.display = 'block';
+            
+            document.getElementById('page-title').innerText = playerHash === "p_leaderboard" ? "資料結算中..." : "個人數據儀表板";
+            fetchDashboard(playerHash);
+        }
+    };
+
+    function submitResult() {
+        const payload = {
+            gameId: document.getElementById('gameId').value,
+            r1: document.getElementById('r1').value,
+            r2: document.getElementById('r2').value,
+            r3: document.getElementById('r3').value,
+            r4: document.getElementById('r4').value
+        };
+
+        if(!payload.gameId || !payload.r1 || !payload.r2 || !payload.r3 || !payload.r4) {
+            alert("請完整填寫 Game ID 與所有名次！"); return;
+        }
+        
+        const uniquePlayers = new Set([payload.r1, payload.r2, payload.r3, payload.r4]);
+        if(uniquePlayers.size !== 4) {
+            alert("錯誤：不能選擇重複的玩家！"); return;
+        }
+
+        const btn = document.getElementById('submit-btn');
+        const msg = document.getElementById('form-msg');
+        btn.disabled = true;
+        btn.innerText = "紀錄上傳中...";
+
+        fetch(API_URL, {
+            method: 'POST',
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payload),
+            redirect: 'follow'
+        })
+        .then(res => res.json())
+        .then(data => {
+            msg.style.color = "var(--primary)";
+            msg.innerText = "✅ 紀錄成功送出！(如果是舊ID已自動覆蓋)";
+            setTimeout(() => { location.reload(); }, 2000);
+        })
+        .catch(err => {
+            msg.style.color = "red";
+            msg.innerText = "❌ 發生錯誤，請檢查網路連線或 CORS 設定";
+            btn.disabled = false;
+            btn.innerText = "送出紀錄";
+        });
+    }
+
+    function fetchDashboard(hash) {
+        fetch(API_URL + "?p=" + hash)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('loading-view').style.display = 'none';
+            
+            if(data.error) {
+                document.getElementById('page-title').innerText = "❌ " + data.error;
+                return;
+            }
+
+            if (data.isLeaderboard) {
+                document.getElementById('leaderboard-view').style.display = 'block';
+                document.getElementById('page-title').innerText = "👑 賽季積分總榜";
+                
+                const tbody = document.getElementById('leaderboard-list');
+                data.data.forEach((p, index) => {
+                    let medal = index === 0 ? "🥇" : (index === 1 ? "🥈" : (index === 2 ? "🥉" : "&nbsp;&nbsp;&nbsp;&nbsp;"));
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="text-align:left; padding-left:1rem; font-weight:700;">${medal} ${p.name}</td>
+                            <td>${p.totalGames}</td>
+                            <td style="color:var(--primary); font-weight:800; font-size:1.1rem;">${p.totalScore}</td>
+                            <td style="font-weight:600;">${p.avgScore}</td>
+                            <td>${p.firstPct}%</td>
+                        </tr>
+                    `;
+                });
+                return;
+            }
+
+            document.getElementById('dashboard-view').style.display = 'block';
+            document.getElementById('page-title').innerText = `📊 ${data.name} 的專屬儀表板`;
+            
+            document.getElementById('s-games').innerText = data.totalGames;
+            document.getElementById('s-score').innerText = `${data.totalScore} / ${data.avgScore}`;
+            document.getElementById('s-first').innerText = `${data.firstPlace} (${data.firstPct}%)`;
+            document.getElementById('s-top2').innerText = `${data.top2Place} (${data.top2Pct}%)`;
+
+            const oppList = document.getElementById('opp-list');
+            for(let oppName in data.opponents) {
+                let opp = data.opponents[oppName];
+                let color = opp.winPct >= 50 ? "var(--primary)" : "#DC2626";
+                oppList.innerHTML += `
+                    <tr>
+                        <td style="font-weight:600;">${oppName}</td>
+                        <td>${opp.games} 場</td>
+                        <td style="color:${color}; font-weight:700;">${opp.winPct}%</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+</script>
+</body>
+</html>

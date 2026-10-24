@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>休閒計分系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #059669; --primary-hover: #047857; --bg: #F3F4F6; --card-bg: #FFFFFF; --text-main: #1F2937; --text-muted: #6B7280; --border: #D1D5DB; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -36,13 +37,21 @@
         .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
         .data-table th, .data-table td { padding: 0.75rem 0.5rem; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
         .data-table th { color: var(--text-muted); font-weight: 600; background: #F9FAFB; }
-        
-        /* 針對 Matrix 特別縮小字體以防破版 */
         .matrix-table { font-size: 0.75rem; }
         .matrix-table th, .matrix-table td { padding: 0.5rem 0.25rem; }
 
         #form-view, #dashboard-view, #loading-view, #leaderboard-view { display: none; }
         .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.5rem;}
+        
+        .chart-container { position: relative; height: 260px; width: 100%; margin-bottom: 1rem; }
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        @media (max-width: 600px) { .chart-grid { grid-template-columns: 1fr; } }
+
+        /* 特殊成就區塊樣式 */
+        .achievement-card { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); border: 1px solid #D1D5DB; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .achive-item { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 8px; }
+        .achive-hl { color: var(--primary); font-weight: 800; font-size: 1.05rem; }
+        .hero-banner { background: var(--primary); color: white; text-align: center; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.3); }
     </style>
 </head>
 <body>
@@ -52,12 +61,10 @@
         <h1 id="page-title">紀錄比賽結果</h1>
     </div>
 
-    <!-- 狀態一：讀取中 -->
     <div id="loading-view" style="text-align:center; padding: 3rem 0; color: var(--text-muted);">
         正在從資料庫撈取數據...
     </div>
 
-    <!-- 狀態二：紀錄輸入頁面 -->
     <div class="card" id="form-view">
         <div class="input-group">
             <label>Game ID (若重複將覆蓋舊紀錄)</label>
@@ -75,51 +82,80 @@
     <div id="dashboard-view">
         <p class="notice-text">* 參與超過 10 場對應賽事之玩家才列入全服排名計算</p>
         
+        <!-- 新增：專屬成就卡片 -->
+        <div class="achievement-card">
+            <h4 style="text-align:center; font-size:1.1rem; color:var(--text-main); margin-bottom:1rem; font-weight:800;">🎉 個人專屬成就</h4>
+            <div class="achive-item">🏅 里程碑稱號：<span id="p-badge" class="achive-hl"></span></div>
+            <div class="achive-item">🤝 最佳牌搭子：與 <span id="p-bestmate" class="achive-hl"></span> 一起建國了 <span id="p-mategames" class="achive-hl"></span> 次！</div>
+            <div class="achive-item">🔥 連續活躍：已連續 <span id="p-streak" style="color:#DC2626; font-weight:800; font-size: 1.05rem;"></span> 個月參與遊戲！</div>
+        </div>
+
+        <h3 class="section-title">📊 自我成長與分佈分析</h3>
+        <div class="chart-grid">
+            <div class="card" style="margin-bottom:0; padding:1rem;">
+                <h4 style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">名次分佈比例</h4>
+                <div class="chart-container" style="height:200px;"><canvas id="personalDoughnut"></canvas></div>
+            </div>
+            <div class="card" style="margin-bottom:0; padding:1rem;">
+                <h4 style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">近 10 場平均得分走勢 (滑動窗口)</h4>
+                <div class="chart-container" style="height:200px;"><canvas id="personalMAChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="card" style="padding:1rem;">
+            <h4 style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-bottom:0.5rem;">遊戲活躍度 (總場數 vs 個人參與)</h4>
+            <div class="chart-container" style="height:180px;"><canvas id="personalActivityChart"></canvas></div>
+        </div>
+
         <h3 class="section-title">🌟 歷史總計 (All Time)</h3>
         <div class="stat-grid">
-            <div class="stat-box">
-                <div class="stat-value" id="s-games-all">0</div>
-                <div class="stat-label">總參與場數</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value" id="s-score-all">0 / 0.00</div>
-                <div class="stat-label">總分 / 場均 <span class="rank-badge" id="r-avg-all"></span></div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value" id="s-first-all">0 (0%)</div>
-                <div class="stat-label">第一名機率 <span class="rank-badge" id="r-first-all"></span></div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value" id="s-top2-all">0 (0%)</div>
-                <div class="stat-label">前兩名機率 <span class="rank-badge" id="r-top2-all"></span></div>
-            </div>
+            <div class="stat-box"><div class="stat-value" id="s-games-all">0</div><div class="stat-label">總參與場數</div></div>
+            <div class="stat-box"><div class="stat-value" id="s-score-all">0 / 0.00</div><div class="stat-label">總分 / 場均 <span class="rank-badge" id="r-avg-all"></span></div></div>
+            <div class="stat-box"><div class="stat-value" id="s-first-all">0 (0%)</div><div class="stat-label">第一名機率 <span class="rank-badge" id="r-first-all"></span></div></div>
+            <div class="stat-box"><div class="stat-value" id="s-top2-all">0 (0%)</div><div class="stat-label">前兩名機率 <span class="rank-badge" id="r-top2-all"></span></div></div>
         </div>
 
         <h3 class="section-title">🔥 近 30 天賽事 (Moving Window)</h3>
         <div class="stat-grid">
-            <div class="stat-box">
-                <div class="stat-value" id="s-games-rec">0</div>
-                <div class="stat-label">總參與場數</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value" id="s-score-rec">0 / 0.00</div>
-                <div class="stat-label">總分 / 場均 <span class="rank-badge" id="r-avg-rec"></span></div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value" id="s-first-rec">0 (0%)</div>
-                <div class="stat-label">第一名機率 <span class="rank-badge" id="r-first-rec"></span></div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value" id="s-top2-rec">0 (0%)</div>
-                <div class="stat-label">前兩名機率 <span class="rank-badge" id="r-top2-rec"></span></div>
-            </div>
+            <div class="stat-box"><div class="stat-value" id="s-games-rec">0</div><div class="stat-label">總參與場數</div></div>
+            <div class="stat-box"><div class="stat-value" id="s-score-rec">0 / 0.00</div><div class="stat-label">總分 / 場均 <span class="rank-badge" id="r-avg-rec"></span></div></div>
+            <div class="stat-box"><div class="stat-value" id="s-first-rec">0 (0%)</div><div class="stat-label">第一名機率 <span class="rank-badge" id="r-first-rec"></span></div></div>
+            <div class="stat-box"><div class="stat-value" id="s-top2-rec">0 (0%)</div><div class="stat-label">前兩名機率 <span class="rank-badge" id="r-top2-rec"></span></div></div>
         </div>
     </div>
 
     <!-- 狀態四：總體排行榜 -->
     <div id="leaderboard-view">
+        <!-- 新增：群組時光轉化器 -->
+        <div class="hero-banner">
+            <h2 style="font-size: 1.2rem; margin-bottom: 0.5rem;">群組時光轉化器 ⏳</h2>
+            <p style="font-size: 0.95rem; opacity: 0.95; line-height:1.6;">我們已共同完成了 <span id="g-totalGames" style="font-size:1.6rem; font-weight:800; color:#FEF08A; margin: 0 4px;"></span> 場遊戲<br>相當於創造了約 <span id="g-totalHours" style="font-size:1.6rem; font-weight:800; color:#FEF08A; margin: 0 4px;"></span> 小時的歡樂回憶！</p>
+            <p style="font-size: 0.7rem; margin-top:0.8rem; opacity: 0.7;">*以每局平均 4 小時估算</p>
+        </div>
+
         <p class="notice-text">* 整體排名預設依「場均積分」排序。參與超過 10 場之玩家才列入榜單。</p>
         
+        <h3 class="section-title" style="border-bottom:none;">🎨 玩家風格：名次分佈比例</h3>
+        <div class="card">
+            <div class="chart-container" style="height: 250px;">
+                <canvas id="leaderboardStackedChart"></canvas>
+            </div>
+        </div>
+
+        <h3 class="section-title" style="border-bottom:none;">🔥 群組活躍度 (每月遊戲場數)</h3>
+        <div class="card">
+            <div class="chart-container" style="height: 180px;">
+                <canvas id="leaderboardActivityChart"></canvas>
+            </div>
+        </div>
+
+        <h3 class="section-title" style="border-bottom:none;">📈 累積勝率走勢對比 (1st Place %)</h3>
+        <div class="card">
+            <div class="chart-container">
+                <canvas id="leaderboardWinRateChart"></canvas>
+            </div>
+        </div>
+
         <h3 class="section-title" style="border-bottom:none;">🏆 正式排行榜 (>10 場)</h3>
         <div class="card table-wrapper">
             <table class="data-table">
@@ -149,9 +185,11 @@
 
 <script>
     // ⚠️ 請在此處填入您 Google Apps Script 的網址
-    const API_URL = "https://script.google.com/macros/s/AKfycbyg-Am0z2P4ZgI1KL_YavqoZ5KwREwU8y0HkhMIMUzZIWDle3UoGWNMpVlYDQOv5lbTnA/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbwCwlkjBuVV4ZXpsb3oK6S2-YnRkSveOZEen0Ng3dBQp28dIsZNMDvJNlMwB0hoAQeFkQ/exec"; 
     
     const PLAYERS = ["bala", "bob", "duck", "Neil", "DHYellow", "PG"];
+    const P_COLORS = { "bala": "#DC2626", "bob": "#2563EB", "duck": "#059669", "Neil": "#7C3AED", "DHYellow": "#D97706", "PG": "#0891B2" };
+    const RANK_COLORS = ["#F59E0B", "#9CA3AF", "#B45309", "#4B5563"]; 
 
     window.onload = () => {
         const selects = document.querySelectorAll('.player-select');
@@ -181,7 +219,6 @@
         };
 
         if(!payload.gameId || !payload.r1 || !payload.r2 || !payload.r3 || !payload.r4) { alert("請完整填寫 Game ID 與所有名次！"); return; }
-        
         const uniquePlayers = new Set([payload.r1, payload.r2, payload.r3, payload.r4]);
         if(uniquePlayers.size !== 4) { alert("錯誤：不能選擇重複的玩家！"); return; }
 
@@ -189,12 +226,7 @@
         const msg = document.getElementById('form-msg');
         btn.disabled = true; btn.innerText = "紀錄上傳中...";
 
-        fetch(API_URL, {
-            method: 'POST',
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(payload),
-            redirect: 'follow'
-        })
+        fetch(API_URL, { method: 'POST', headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload), redirect: 'follow' })
         .then(res => res.json())
         .then(data => {
             msg.style.color = "var(--primary)"; msg.innerText = "✅ 紀錄成功送出！(若有舊ID已自動覆蓋)";
@@ -209,12 +241,93 @@
     function renderRankBadge(rankStr, elId) {
         const el = document.getElementById(elId);
         if (rankStr === "-") {
-            el.innerText = "未入榜";
-            el.className = "rank-badge unranked";
+            el.innerText = "未入榜"; el.className = "rank-badge unranked";
         } else {
-            el.innerText = `第 ${rankStr} 名`;
-            el.className = "rank-badge";
+            el.innerText = `第 ${rankStr} 名`; el.className = "rank-badge";
         }
+    }
+
+    function getMilestoneBadge(games) {
+        if (games >= 100) return "👑 歷史見證者";
+        if (games >= 50) return "🏰 資深領袖";
+        if (games >= 30) return "⚔️ 熟練統帥";
+        if (games >= 10) return "🏕️ 文明拓荒者";
+        return "🌱 萌新村長";
+    }
+
+    function drawWinRateChart(canvasId, timelineData, targetPlayers) {
+        new Chart(document.getElementById(canvasId).getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: timelineData.map((d, i) => `${new Date(d.date).getMonth()+1}/${new Date(d.date).getDate()} (G${i+1})`),
+                datasets: targetPlayers.map(p => ({
+                    label: p, data: timelineData.map(d => d.players[p]),
+                    borderColor: P_COLORS[p] || '#6B7280', backgroundColor: P_COLORS[p] || '#6B7280',
+                    borderWidth: 2, tension: 0.3, pointRadius: 1, spanGaps: true
+                }))
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } },
+                scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: '累積勝率 (%)', font: { size: 10 } } }, x: { ticks: { maxTicksLimit: 8, font: { size: 9 } } } }
+            }
+        });
+    }
+
+    function drawDoughnutChart(canvasId, ranksData) {
+        new Chart(document.getElementById(canvasId).getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['第一名 (1st)', '第二名 (2nd)', '第三名 (3rd)', '第四名 (4th)'],
+                datasets: [{ data: ranksData.slice(1, 5), backgroundColor: RANK_COLORS, borderWidth: 1 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } } }, cutout: '60%' }
+        });
+    }
+
+    function drawMovingAvgChart(canvasId, historyArr) {
+        let maData = historyArr.map((_, i) => {
+            let start = Math.max(0, i - 10 + 1);
+            let slice = historyArr.slice(start, i + 1);
+            return (slice.reduce((a, b) => a + b, 0) / slice.length).toFixed(2);
+        });
+
+        new Chart(document.getElementById(canvasId).getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: historyArr.map((_, i) => `G${i+1}`),
+                datasets: [{ label: '10場平均得分', data: maData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 8, title: { display: true, text: '平均得分', font: { size: 10 } } }, x: { ticks: { maxTicksLimit: 10, font: { size: 9 } } } } }
+        });
+    }
+
+    function drawStackedBarChart(canvasId, allDataArray) {
+        let datasets = [];
+        let labels = ['1st', '2nd', '3rd', '4th'];
+        for (let i = 1; i <= 4; i++) {
+            datasets.push({ label: labels[i-1], data: allDataArray.map(p => p.totalGames > 0 ? ((p.ranks[i] / p.totalGames) * 100).toFixed(1) : 0), backgroundColor: RANK_COLORS[i-1] });
+        }
+        new Chart(document.getElementById(canvasId).getContext('2d'), {
+            type: 'bar',
+            data: { labels: allDataArray.map(p => p.name), datasets: datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}%` } } },
+                scales: { x: { stacked: true, ticks: { font: { size: 10 } } }, y: { stacked: true, max: 100, title: { display: true, text: '名次分佈 (%)', font: { size: 10 } } } }
+            }
+        });
+    }
+
+    function drawActivityChart(canvasId, activityArr, isPersonal, targetPlayer) {
+        let datasets = [{ label: '全群組總場數', data: activityArr.map(a => a.total), backgroundColor: '#E5E7EB', borderRadius: 4 }];
+        if (isPersonal) datasets.push({ label: '我的參與場數', data: activityArr.map(a => a[targetPlayer]), backgroundColor: '#059669', borderRadius: 4 });
+
+        new Chart(document.getElementById(canvasId).getContext('2d'), {
+            type: 'bar',
+            data: { labels: activityArr.map(a => a.month), datasets: datasets },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { ticks: { font: { size: 10 } } } } }
+        });
     }
 
     function fetchDashboard(hash) {
@@ -225,11 +338,19 @@
             if(data.error) { document.getElementById('page-title').innerText = "❌ " + data.error; return; }
 
             // =========================
-            // 總體排行榜與 Matrix
+            // 總體排行榜
             // =========================
             if (data.isLeaderboard) {
                 document.getElementById('leaderboard-view').style.display = 'block';
                 document.getElementById('page-title').innerText = "👑 賽季積分總榜";
+                
+                // 更新時光轉化器
+                document.getElementById('g-totalGames').innerText = data.totalGroupGames;
+                document.getElementById('g-totalHours').innerText = data.totalGroupGames * 4;
+
+                if (data.timeline && data.timeline.length > 0) drawWinRateChart('leaderboardWinRateChart', data.timeline, PLAYERS);
+                if (data.data && data.data.length > 0) drawStackedBarChart('leaderboardStackedChart', data.data);
+                if (data.activity && data.activity.length > 0) drawActivityChart('leaderboardActivityChart', data.activity, false, null);
                 
                 const tbRanked = document.getElementById('leaderboard-ranked');
                 const tbUnranked = document.getElementById('leaderboard-unranked');
@@ -239,45 +360,28 @@
                     let isRanked = p.totalGames > 10;
                     let medal = "&nbsp;&nbsp;&nbsp;&nbsp;";
                     if (isRanked) {
-                        if (rankCount === 0) medal = "🥇";
-                        else if (rankCount === 1) medal = "🥈";
-                        else if (rankCount === 2) medal = "🥉";
+                        if (rankCount === 0) medal = "🥇"; else if (rankCount === 1) medal = "🥈"; else if (rankCount === 2) medal = "🥉";
                         rankCount++;
                     }
-                    
-                    let html = `
-                        <tr>
-                            <td style="text-align:left; padding-left:1rem; font-weight:700;">${medal} ${p.name}</td>
-                            <td>${p.totalGames}</td>
-                            <td>${p.totalScore}</td>
-                            <td style="color:var(--primary); font-weight:800; font-size:1.1rem;">${p.avgScore}</td>
-                            <td>${p.top2Pct}%</td>
-                            <td>${p.firstPct}%</td>
-                        </tr>
-                    `;
-                    if (isRanked) tbRanked.innerHTML += html;
-                    else tbUnranked.innerHTML += html;
+                    let html = `<tr><td style="text-align:left; padding-left:1rem; font-weight:700;">${medal} ${p.name}</td><td>${p.totalGames}</td><td>${p.totalScore}</td><td style="color:var(--primary); font-weight:800; font-size:1.1rem;">${p.avgScore}</td><td>${p.top2Pct}%</td><td>${p.firstPct}%</td></tr>`;
+                    if (isRanked) tbRanked.innerHTML += html; else tbUnranked.innerHTML += html;
                 });
 
                 if (tbRanked.innerHTML === "") tbRanked.innerHTML = `<tr><td colspan="6" style="color:var(--text-muted); padding:2rem;">目前無人符合入榜條件 (>10場)</td></tr>`;
                 if (tbUnranked.innerHTML === "") tbUnranked.parentElement.previousElementSibling.style.display = 'none';
 
-                // 生成 Confusion Matrix
                 const mHead = document.getElementById('matrix-head');
                 const mBody = document.getElementById('matrix-body');
                 mHead.innerHTML = `<tr><th>玩家</th>${PLAYERS.map(p => `<th>${p}</th>`).join('')}</tr>`;
-                
                 let mHtml = "";
                 PLAYERS.forEach(p1 => {
                     mHtml += `<tr><td style="font-weight:700;">${p1}</td>`;
                     PLAYERS.forEach(p2 => {
-                        if (p1 === p2) {
-                            mHtml += `<td style="background:#E5E7EB; color:#9CA3AF;">-</td>`;
-                        } else {
+                        if (p1 === p2) { mHtml += `<td style="background:#E5E7EB; color:#9CA3AF;">-</td>`; } 
+                        else {
                             let cell = data.matrix[p1][p2];
-                            if (cell.games === 0) {
-                                mHtml += `<td style="color:var(--text-muted);">N/A</td>`;
-                            } else {
+                            if (cell.games === 0) { mHtml += `<td style="color:var(--text-muted);">N/A</td>`; } 
+                            else {
                                 let color = cell.winPct >= 50 ? "var(--primary)" : "#DC2626";
                                 mHtml += `<td style="color:${color}; font-weight:700;">${cell.winPct}%<br><span style="font-size:0.65rem; color:var(--text-muted); font-weight:400;">(${cell.beatThem}/${cell.games})</span></td>`;
                             }
@@ -295,7 +399,16 @@
             document.getElementById('dashboard-view').style.display = 'block';
             document.getElementById('page-title').innerText = `📊 ${data.name} 的專屬儀表板`;
             
-            // 歷史總計
+            // 填入成就徽章與數據
+            document.getElementById('p-badge').innerText = getMilestoneBadge(data.allTime.totalGames);
+            document.getElementById('p-bestmate').innerText = data.bestMate.name;
+            document.getElementById('p-mategames').innerText = data.bestMate.games;
+            document.getElementById('p-streak').innerText = data.streak;
+
+            if (data.allTime && data.allTime.totalGames > 0) drawDoughnutChart('personalDoughnut', data.allTime.ranks);
+            if (data.history && data.history.length > 0) drawMovingAvgChart('personalMAChart', data.history);
+            if (data.activity && data.activity.length > 0) drawActivityChart('personalActivityChart', data.activity, true, data.name);
+
             document.getElementById('s-games-all').innerText = data.allTime.totalGames;
             document.getElementById('s-score-all').innerText = `${data.allTime.totalScore} / ${data.allTime.avgScore}`;
             document.getElementById('s-first-all').innerText = `${data.allTime.firstPlace} (${data.allTime.firstPct}%)`;
@@ -304,7 +417,6 @@
             renderRankBadge(data.allTime.rankFirst, 'r-first-all');
             renderRankBadge(data.allTime.rankTop2, 'r-top2-all');
 
-            // 近 30 天
             document.getElementById('s-games-rec').innerText = data.recent.totalGames;
             document.getElementById('s-score-rec').innerText = `${data.recent.totalScore} / ${data.recent.avgScore}`;
             document.getElementById('s-first-rec').innerText = `${data.recent.firstPlace} (${data.recent.firstPct}%)`;

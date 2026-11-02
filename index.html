@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>休閒計分系統</title>
+    <title>TTA 歷史巨輪：賽季與趣味數據統計系統</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #059669; --primary-hover: #047857; --bg: #F3F4F6; --card-bg: #FFFFFF; --text-main: #1F2937; --text-muted: #6B7280; --border: #D1D5DB; }
+        :root { --primary: #059669; --primary-hover: #047857; --accent: #7C3AED; --bg: #F3F4F6; --card-bg: #FFFFFF; --text-main: #1F2937; --text-muted: #6B7280; --border: #D1D5DB; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg); color: var(--text-main); line-height: 1.5; padding: 1rem; }
-        .container { max-width: 650px; margin: 0 auto; }
+        .container { max-width: 720px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 1.5rem; padding-top: 1rem; }
         .header h1 { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
         .card { background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1rem; border: 1px solid var(--border); }
@@ -24,12 +24,15 @@
         button.btn:disabled { background-color: #9CA3AF; cursor: not-allowed; }
 
         .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main); text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
-        .notice-text { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 1.5rem; }
+        .notice-text { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 1.2rem; }
 
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
-        .stat-box { background: #F9FAFB; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; position: relative; }
-        .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
-        .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 0.25rem; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1.5rem; }
+        .stat-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        @media (max-width: 560px) { .stat-grid-3 { grid-template-columns: 1fr 1fr; } }
+        .stat-box { background: #F9FAFB; border: 1px solid var(--border); border-radius: 10px; padding: 0.9rem 0.6rem; text-align: center; position: relative; }
+        .stat-value { font-size: 1.35rem; font-weight: 800; color: var(--primary); }
+        .stat-sub { font-size: 0.72rem; color: #4B5563; margin-top: 2px; font-weight: 600; }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 0.25rem; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
         
         .rank-badge { background-color: #FEF3C7; color: #B45309; padding: 2px 6px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; }
         .rank-badge.unranked { background-color: #E5E7EB; color: #6B7280; }
@@ -49,9 +52,39 @@
 
         /* 特殊成就區塊樣式 */
         .achievement-card { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); border: 1px solid #D1D5DB; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .achive-item { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 8px; }
+        .achive-item { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .achive-hl { color: var(--primary); font-weight: 800; font-size: 1.05rem; }
-        .hero-banner { background: var(--primary); color: white; text-align: center; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.3); }
+        .hero-banner { background: var(--primary); color: white; text-align: center; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.25rem; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.3); }
+
+        /* 版本切換器 */
+        .version-tabs { display: flex; gap: 0.5rem; background: #E5E7EB; padding: 0.35rem; border-radius: 10px; margin-bottom: 1.25rem; }
+        .version-tab { flex: 1; text-align: center; padding: 0.6rem 0.5rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; color: #4B5563; transition: 0.2s; border: none; background: transparent; }
+        .version-tab.active { background: #FFFFFF; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+
+        /* 趣味王稱號卡片網格 */
+        .fun-awards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1.5rem; }
+        @media (max-width: 560px) { .fun-awards-grid { grid-template-columns: 1fr; } }
+        .fun-award-card { background: linear-gradient(145deg, #ffffff 0%, #f9fafb 100%); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 10px; padding: 0.9rem 1rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .fun-award-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+        .fun-award-icon { font-size: 1.4rem; }
+        .fun-award-title { font-size: 0.95rem; font-weight: 800; color: var(--text-main); }
+        .fun-award-sub { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .fun-award-winner { display: flex; align-items: baseline; justify-content: space-between; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 0.45rem 0.65rem; }
+        .fun-winner-name { font-size: 1.05rem; font-weight: 800; color: #065F46; }
+        .fun-winner-val { font-size: 0.78rem; font-weight: 700; color: #047857; }
+        .fun-runner-up { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.35rem; text-align: right; }
+
+        /* 時代最愛卡片 */
+        .age-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.65rem; margin-bottom: 1.5rem; }
+        @media (max-width: 600px) { .age-grid { grid-template-columns: 1fr 1fr; } }
+        .age-card { background: #F9FAFB; border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem; text-align: center; }
+        .age-badge { display: inline-block; background: #1F2937; color: #F9FAFB; font-size: 0.75rem; font-weight: 800; padding: 2px 10px; border-radius: 999px; margin-bottom: 0.5rem; }
+        .age-item-label { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; }
+        .age-item-val { font-size: 0.88rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.4rem; }
+
+        /* 個人第一名徽章膠囊 */
+        .crown-badges-wrap { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.5rem; }
+        .crown-pill { background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); color: #92400E; border: 1px solid #F59E0B; border-radius: 999px; padding: 0.3rem 0.75rem; font-size: 0.78rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
     </style>
 </head>
 <body>
@@ -65,30 +98,72 @@
         正在從資料庫撈取數據...
     </div>
 
+    <!-- 狀態一：紀錄比賽結果（僅需輸入 Game ID，免手動填排名） -->
     <div class="card" id="form-view">
         <div class="input-group">
-            <label>Game ID (若重複將覆蓋舊紀錄)</label>
-            <input type="text" id="gameId" placeholder="例如: JUJIVORUMA" required>
+            <label>🎮 Game ID 觀戰代碼 (送出後將由系統自動從 Replay 解析名次與 27 項趣味數據)</label>
+            <input type="text" id="gameId" placeholder="例如: GATOVUJUMA" style="text-transform:uppercase; font-weight:700; letter-spacing:1px;" required>
         </div>
-        <div class="input-group"><label>🏆 第一名 (8分)</label><select id="r1" class="player-select"></select></div>
-        <div class="input-group"><label>🥈 第二名 (5分)</label><select id="r2" class="player-select"></select></div>
-        <div class="input-group"><label>🥉 第三名 (3分)</label><select id="r3" class="player-select"></select></div>
-        <div class="input-group"><label>🎖️ 第四名 (2分)</label><select id="r4" class="player-select"></select></div>
-        <button class="btn" id="submit-btn" onclick="submitResult()">送出紀錄</button>
+
+        <details style="margin-bottom: 1rem; border: 1px dashed var(--border); border-radius: 8px; padding: 0.75rem; background: #F9FAFB;">
+            <summary style="font-size: 0.82rem; color: var(--text-muted); cursor: pointer; font-weight: 600;">
+                ⚙️ 進階選項：手動指定名次（預設免填，由 Replay 自動寫入）
+            </summary>
+            <div style="margin-top: 0.85rem;">
+                <div class="input-group"><label>🏆 第一名 (8分)</label><select id="r1" class="player-select"></select></div>
+                <div class="input-group"><label>🥈 第二名 (5分)</label><select id="r2" class="player-select"></select></div>
+                <div class="input-group"><label>🥉 第三名 (3分)</label><select id="r3" class="player-select"></select></div>
+                <div class="input-group"><label>🎖️ 第四名 (2分)</label><select id="r4" class="player-select"></select></div>
+            </div>
+        </details>
+
+        <button class="btn" id="submit-btn" onclick="submitResult()">🚀 送出 Game ID</button>
         <div id="form-msg" style="text-align:center; margin-top:1rem; font-weight:600; font-size:0.9rem;"></div>
     </div>
 
-    <!-- 狀態三：個人統計儀表板 -->
+    <!-- 狀態三：個人統計儀表板 (?p=p_HASHCODE) -->
     <div id="dashboard-view">
-        <p class="notice-text">* 參與超過 10 場對應賽事之玩家才列入全服排名計算</p>
+        <p class="notice-text">* 參與超過 10 場對應賽事之玩家才列入全服排名與趣味榜首計算</p>
         
-        <!-- 新增：專屬成就卡片 -->
+        <!-- 專屬成就卡片 -->
         <div class="achievement-card">
-            <h4 style="text-align:center; font-size:1.1rem; color:var(--text-main); margin-bottom:1rem; font-weight:800;">🎉 個人專屬成就</h4>
+            <h4 style="text-align:center; font-size:1.1rem; color:var(--text-main); margin-bottom:1rem; font-weight:800;">🎉 個人專屬成就與全服王座</h4>
             <div class="achive-item">🏅 里程碑稱號：<span id="p-badge" class="achive-hl"></span></div>
             <div class="achive-item">🤝 最佳牌搭子：與 <span id="p-bestmate" class="achive-hl"></span> 一起建國了 <span id="p-mategames" class="achive-hl"></span> 次！</div>
             <div class="achive-item">🔥 連續活躍：已連續 <span id="p-streak" style="color:#DC2626; font-weight:800; font-size: 1.05rem;"></span> 個月參與遊戲！</div>
+            <div class="achive-item" style="align-items:flex-start; flex-direction:column; margin-top:0.5rem;">
+                <span>👑 目前稱霸全服的趣味頭銜 (第 1 名)：</span>
+                <div id="p-fun-crowns" class="crown-badges-wrap"></div>
+            </div>
         </div>
+
+        <!-- 新增：個人好色指數、後宮與政體偏好 -->
+        <h3 class="section-title">💗 後宮與執政風格檔案</h3>
+        <div class="stat-grid-3">
+            <div class="stat-box" style="border-color:#FBCFE8; background:#FDF2F8;">
+                <div class="stat-value" id="p-horny-pct" style="color:#DB2777;">0%</div>
+                <div class="stat-sub" id="p-horny-detail">0 / 0 位領袖</div>
+                <div class="stat-label" style="color:#9D174D;">💗 好色指數 (女角率)</div>
+            </div>
+            <div class="stat-box" style="border-color:#FBCFE8; background:#FDF2F8;">
+                <div class="stat-value" id="p-fav-harem" style="color:#DB2777; font-size:1.1rem;">尚無紀錄</div>
+                <div class="stat-sub" id="p-fav-harem-cnt">欽點 0 次</div>
+                <div class="stat-label" style="color:#9D174D;">👑 最愛後宮角色</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="p-fav-gov" style="font-size:1.1rem;">尚無紀錄</div>
+                <div class="stat-sub" id="p-gov-rev-detail">革命 0 次 / 和平 0 次</div>
+                <div class="stat-label">🏛️ 最愛政體 & 革命傾向</div>
+            </div>
+        </div>
+
+        <!-- 新增：個人各時代最愛領袖與奇觀 -->
+        <h3 class="section-title">⏳ 各時代最愛領袖 & 奇觀</h3>
+        <div class="age-grid" id="p-age-favorites"></div>
+
+        <!-- 新增：個人歷史極限紀錄與災難統計 -->
+        <h3 class="section-title">🚀 個人歷史極限紀錄 & 趣味統計</h3>
+        <div class="stat-grid-3" id="p-extreme-records"></div>
 
         <h3 class="section-title">📊 自我成長與分佈分析</h3>
         <div class="chart-grid">
@@ -124,67 +199,87 @@
         </div>
     </div>
 
-    <!-- 狀態四：總體排行榜 -->
+    <!-- 狀態四：總體排行榜 (?p=p_leaderboard，支援版本1與版本2) -->
     <div id="leaderboard-view">
-        <!-- 新增：群組時光轉化器 -->
+        <!-- 群組時光轉化器 -->
         <div class="hero-banner">
             <h2 style="font-size: 1.2rem; margin-bottom: 0.5rem;">群組時光轉化器 ⏳</h2>
             <p style="font-size: 0.95rem; opacity: 0.95; line-height:1.6;">我們已共同完成了 <span id="g-totalGames" style="font-size:1.6rem; font-weight:800; color:#FEF08A; margin: 0 4px;"></span> 場遊戲<br>相當於創造了約 <span id="g-totalHours" style="font-size:1.6rem; font-weight:800; color:#FEF08A; margin: 0 4px;"></span> 小時的歡樂回憶！</p>
             <p style="font-size: 0.7rem; margin-top:0.8rem; opacity: 0.7;">*以每局平均 4 小時估算</p>
         </div>
 
-        <p class="notice-text">* 整體排名預設依「場均積分」排序。參與超過 10 場之玩家才列入榜單。</p>
-        
-        <h3 class="section-title" style="border-bottom:none;">🎨 玩家風格：名次分佈比例</h3>
-        <div class="card">
-            <div class="chart-container" style="height: 250px;">
-                <canvas id="leaderboardStackedChart"></canvas>
+        <!-- 版本 1 / 版本 2 切換按鈕 -->
+        <div class="version-tabs">
+            <button class="version-tab" id="tab-v1" onclick="setLeaderboardVersion(1)">🎪 版本 1：僅顯示趣味統計</button>
+            <button class="version-tab active" id="tab-v2" onclick="setLeaderboardVersion(2)">🏆 版本 2：趣味統計 + 賽季積分榜</button>
+        </div>
+
+        <!-- 區塊 A：趣味排名統計 & 各時代熱門領袖奇觀 (版本 1 & 版本 2 皆顯示) -->
+        <div id="leaderboard-fun-section">
+            <p class="notice-text">* 趣味風雲榜僅統計參與超過 10 場之玩家。數據由 Replay 解析器自動挖掘。</p>
+
+            <h3 class="section-title">🎪 賽季趣味風雲榜 (27 大稱號)</h3>
+            <div class="fun-awards-grid" id="fun-awards-container"></div>
+
+            <h3 class="section-title">🏛️ 全服各時代人氣王（最愛領袖 & 最愛奇觀）</h3>
+            <div class="age-grid" id="global-age-favorites"></div>
+        </div>
+
+        <!-- 區塊 B：原本的賽季積分名次排名統計 (僅版本 2 顯示) -->
+        <div id="leaderboard-competitive-section">
+            <p class="notice-text">* 整體排名預設依「場均積分」排序。參與超過 10 場之玩家才列入榜單。</p>
+            
+            <h3 class="section-title" style="border-bottom:none;">🎨 玩家風格：名次分佈比例</h3>
+            <div class="card">
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="leaderboardStackedChart"></canvas>
+                </div>
             </div>
-        </div>
 
-        <h3 class="section-title" style="border-bottom:none;">🔥 群組活躍度 (每月遊戲場數)</h3>
-        <div class="card">
-            <div class="chart-container" style="height: 180px;">
-                <canvas id="leaderboardActivityChart"></canvas>
+            <h3 class="section-title" style="border-bottom:none;">🔥 群組活躍度 (每月遊戲場數)</h3>
+            <div class="card">
+                <div class="chart-container" style="height: 180px;">
+                    <canvas id="leaderboardActivityChart"></canvas>
+                </div>
             </div>
-        </div>
 
-        <h3 class="section-title" style="border-bottom:none;">📈 累積勝率走勢對比 (1st Place %)</h3>
-        <div class="card">
-            <div class="chart-container">
-                <canvas id="leaderboardWinRateChart"></canvas>
+            <h3 class="section-title" style="border-bottom:none;">📈 累積勝率走勢對比 (1st Place %)</h3>
+            <div class="card">
+                <div class="chart-container">
+                    <canvas id="leaderboardWinRateChart"></canvas>
+                </div>
             </div>
-        </div>
 
-        <h3 class="section-title" style="border-bottom:none;">🏆 正式排行榜 (>10 場)</h3>
-        <div class="card table-wrapper">
-            <table class="data-table">
-                <thead><tr><th style="text-align:left; padding-left:1rem;">玩家</th><th>場數</th><th>總積分</th><th style="color:var(--primary);">場均</th><th>Top 2</th><th>1st</th></tr></thead>
-                <tbody id="leaderboard-ranked"></tbody>
-            </table>
-        </div>
+            <h3 class="section-title" style="border-bottom:none;">🏆 正式排行榜 (>10 場)</h3>
+            <div class="card table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th style="text-align:left; padding-left:1rem;">玩家</th><th>場數</th><th>總積分</th><th style="color:var(--primary);">場均</th><th>Top 2</th><th>1st</th></tr></thead>
+                    <tbody id="leaderboard-ranked"></tbody>
+                </table>
+            </div>
 
-        <h3 class="section-title" style="border-bottom:none;">👻 未排序玩家 (≤10 場)</h3>
-        <div class="card table-wrapper">
-            <table class="data-table">
-                <thead><tr><th style="text-align:left; padding-left:1rem;">玩家</th><th>場數</th><th>總積分</th><th style="color:var(--primary);">場均</th><th>Top 2</th><th>1st</th></tr></thead>
-                <tbody id="leaderboard-unranked"></tbody>
-            </table>
-        </div>
+            <h3 class="section-title" style="border-bottom:none;">👻 未排序玩家 (≤10 場)</h3>
+            <div class="card table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th style="text-align:left; padding-left:1rem;">玩家</th><th>場數</th><th>總積分</th><th style="color:var(--primary);">場均</th><th>Top 2</th><th>1st</th></tr></thead>
+                    <tbody id="leaderboard-unranked"></tbody>
+                </table>
+            </div>
 
-        <h3 class="section-title" style="border-bottom:none;">⚔️ 玩家對戰勝率矩陣 (Confusion Matrix)</h3>
-        <div class="card table-wrapper">
-            <table class="data-table matrix-table">
-                <thead id="matrix-head"></thead>
-                <tbody id="matrix-body"></tbody>
-            </table>
-            <p style="font-size:0.7rem; color:var(--text-muted); text-align:center; margin-top:0.5rem;">* 讀法：左側列 (Row) 玩家 對戰 上方欄 (Col) 玩家 的勝率</p>
+            <h3 class="section-title" style="border-bottom:none;">⚔️ 玩家對戰勝率矩陣 (Confusion Matrix)</h3>
+            <div class="card table-wrapper">
+                <table class="data-table matrix-table">
+                    <thead id="matrix-head"></thead>
+                    <tbody id="matrix-body"></tbody>
+                </table>
+                <p style="font-size:0.7rem; color:var(--text-muted); text-align:center; margin-top:0.5rem;">* 讀法：左側列 (Row) 玩家 對戰 上方欄 (Col) 玩家 的勝率</p>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // ⚠️ 請在此處填入您 Google Apps Script 的網址
+    // ⚠️ Google Apps Script API 網址
     const API_URL = "https://script.google.com/macros/s/AKfycbwCwlkjBuVV4ZXpsb3oK6S2-YnRkSveOZEen0Ng3dBQp28dIsZNMDvJNlMwB0hoAQeFkQ/exec"; 
     
     const PLAYERS = ["bala", "bob", "duck", "Neil", "DHYellow", "PG"];
@@ -194,11 +289,18 @@
     window.onload = () => {
         const selects = document.querySelectorAll('.player-select');
         selects.forEach(sel => {
-            sel.innerHTML = '<option value="">請選擇玩家...</option>' + PLAYERS.map(p => `<option value="${p}">${p}</option>`).join('');
+            sel.innerHTML = '<option value="">（選填）由 Replay 自動解析...</option>' + PLAYERS.map(p => `<option value="${p}">${p}</option>`).join('');
         });
 
         const urlParams = new URLSearchParams(window.location.search);
         const playerHash = urlParams.get('p');
+        const verParam = urlParams.get('v');
+
+        if (verParam === "1") {
+            setLeaderboardVersion(1, false);
+        } else {
+            setLeaderboardVersion(2, false);
+        }
 
         if (playerHash) {
             document.getElementById('loading-view').style.display = 'block';
@@ -209,18 +311,64 @@
         }
     };
 
-    function submitResult() {
-        const payload = {
-            gameId: document.getElementById('gameId').value,
-            r1: document.getElementById('r1').value,
-            r2: document.getElementById('r2').value,
-            r3: document.getElementById('r3').value,
-            r4: document.getElementById('r4').value
-        };
+    function setLeaderboardVersion(ver, updateUrl = true) {
+        const compSec = document.getElementById('leaderboard-competitive-section');
+        const t1 = document.getElementById('tab-v1');
+        const t2 = document.getElementById('tab-v2');
+        if (ver === 1) {
+            compSec.style.display = 'none';
+            t1.className = 'version-tab active';
+            t2.className = 'version-tab';
+            if (document.getElementById('leaderboard-view').style.display === 'block') {
+                document.getElementById('page-title').innerText = "🎪 賽季趣味風雲榜";
+            }
+        } else {
+            compSec.style.display = 'block';
+            t1.className = 'version-tab';
+            t2.className = 'version-tab active';
+            if (document.getElementById('leaderboard-view').style.display === 'block') {
+                document.getElementById('page-title').innerText = "👑 賽季積分與趣味總榜";
+            }
+        }
+        if (updateUrl && window.history.replaceState) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('v', String(ver));
+            window.history.replaceState({}, '', url.toString());
+        }
+    }
 
-        if(!payload.gameId || !payload.r1 || !payload.r2 || !payload.r3 || !payload.r4) { alert("請完整填寫 Game ID 與所有名次！"); return; }
-        const uniquePlayers = new Set([payload.r1, payload.r2, payload.r3, payload.r4]);
-        if(uniquePlayers.size !== 4) { alert("錯誤：不能選擇重複的玩家！"); return; }
+    function submitResult() {
+        const gameIdVal = document.getElementById('gameId').value.trim().toUpperCase();
+        const r1Val = document.getElementById('r1').value;
+        const r2Val = document.getElementById('r2').value;
+        const r3Val = document.getElementById('r3').value;
+        const r4Val = document.getElementById('r4').value;
+
+        if (!gameIdVal) {
+            alert("請填寫 Game ID 觀戰代碼！");
+            return;
+        }
+
+        const anyManualRank = Boolean(r1Val || r2Val || r3Val || r4Val);
+        if (anyManualRank) {
+            if (!r1Val || !r2Val || !r3Val || !r4Val) {
+                alert("若要手動指定名次，請完整選擇第 1 至第 4 名；否則請全部留空交由系統自動解析！");
+                return;
+            }
+            const uniquePlayers = new Set([r1Val, r2Val, r3Val, r4Val]);
+            if (uniquePlayers.size !== 4) {
+                alert("錯誤：不能選擇重複的玩家！");
+                return;
+            }
+        }
+
+        const payload = {
+            gameId: gameIdVal,
+            r1: r1Val,
+            r2: r2Val,
+            r3: r3Val,
+            r4: r4Val
+        };
 
         const btn = document.getElementById('submit-btn');
         const msg = document.getElementById('form-msg');
@@ -229,12 +377,15 @@
         fetch(API_URL, { method: 'POST', headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload), redirect: 'follow' })
         .then(res => res.json())
         .then(data => {
-            msg.style.color = "var(--primary)"; msg.innerText = "✅ 紀錄成功送出！(若有舊ID已自動覆蓋)";
+            msg.style.color = "var(--primary)";
+            msg.innerText = anyManualRank
+                ? "✅ 紀錄與名次已成功送出！"
+                : "✅ Game ID 已成功登錄！待 Replay 收集器執行後將自動填入名次與趣味統計。";
             setTimeout(() => { location.reload(); }, 2000);
         })
         .catch(err => {
             msg.style.color = "red"; msg.innerText = "❌ 發生錯誤，請檢查網路連線或 CORS 設定";
-            btn.disabled = false; btn.innerText = "送出紀錄";
+            btn.disabled = false; btn.innerText = "🚀 送出 Game ID";
         });
     }
 
@@ -253,6 +404,117 @@
         if (games >= 30) return "⚔️ 熟練統帥";
         if (games >= 10) return "🏕️ 文明拓荒者";
         return "🌱 萌新村長";
+    }
+
+    function renderAgeFavorites(containerId, ageFavObj) {
+        const container = document.getElementById(containerId);
+        const ages = [
+            { key: "A", label: "遠古時代 (Age A)" },
+            { key: "I", label: "中世紀 (Age I)" },
+            { key: "II", label: "啟蒙時代 (Age II)" },
+            { key: "III", label: "現代 (Age III)" }
+        ];
+        container.innerHTML = ages.map(a => {
+            const info = (ageFavObj && ageFavObj[a.key]) || { leader: { name: "尚無紀錄", count: 0 }, wonder: { name: "尚無紀錄", count: 0 } };
+            const lText = info.leader.count > 0 ? `${info.leader.name} (${info.leader.count}次)` : "尚無紀錄";
+            const wText = info.wonder.count > 0 ? `${info.wonder.name} (${info.wonder.count}次)` : "尚無紀錄";
+            return `
+                <div class="age-card">
+                    <span class="age-badge">${a.label}</span>
+                    <div class="age-item-label">👑 最愛領袖</div>
+                    <div class="age-item-val">${lText}</div>
+                    <div class="age-item-label">🏛️ 最愛奇觀</div>
+                    <div class="age-item-val" style="margin-bottom:0;">${wText}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderFunLeaderboard(funLb) {
+        const awardsEl = document.getElementById('fun-awards-container');
+        if (!funLb || !funLb.awards) {
+            awardsEl.innerHTML = `<div class="card" style="grid-column: 1 / -1; text-align:center; color:var(--text-muted);">目前尚無趣味統計資料，請確認後端 Code.gs 已更新並執行 auto_collector.py。</div>`;
+            return;
+        }
+        awardsEl.innerHTML = funLb.awards.map(aw => `
+            <div class="fun-award-card">
+                <div>
+                    <div class="fun-award-header">
+                        <span class="fun-award-icon">${aw.icon}</span>
+                        <span class="fun-award-title">${aw.title}</span>
+                    </div>
+                    <div class="fun-award-sub">${aw.subtitle}</div>
+                </div>
+                <div>
+                    <div class="fun-award-winner">
+                        <span class="fun-winner-name">👑 ${aw.winner}</span>
+                        <span class="fun-winner-val">${aw.detail}</span>
+                    </div>
+                    <div class="fun-runner-up">次高：${aw.runnerUp || "-"}</div>
+                </div>
+            </div>
+        `).join('');
+
+        renderAgeFavorites('global-age-favorites', funLb.ageFavorites);
+    }
+
+    function renderFunPersonal(funP) {
+        const crownsEl = document.getElementById('p-fun-crowns');
+        if (!funP) {
+            crownsEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">待後端升級與 Replay 解析後解鎖</span>`;
+            return;
+        }
+
+        if (funP.firstPlaceBadges && funP.firstPlaceBadges.length > 0) {
+            crownsEl.innerHTML = funP.firstPlaceBadges.map(b =>
+                `<span class="crown-pill" title="${b.subtitle}：${b.valueText}">${b.icon} ${b.title} (${b.valueText})</span>`
+            ).join('');
+        } else {
+            crownsEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">目前暫無全服第一名頭銜，繼續加油！</span>`;
+        }
+
+        // 好色指數 & 最愛後宮 & 政體
+        const hi = funP.hornyIndex || { pct: 0, femaleCount: 0, totalLeaders: 0 };
+        document.getElementById('p-horny-pct').innerText = `${hi.pct}%`;
+        document.getElementById('p-horny-detail').innerText = `${hi.femaleCount} / ${hi.totalLeaders} 位領袖`;
+
+        const fh = funP.favoriteHarem || { name: "尚無紀錄", count: 0 };
+        document.getElementById('p-fav-harem').innerText = fh.name;
+        document.getElementById('p-fav-harem-cnt').innerText = fh.count > 0 ? `欽點 ${fh.count} 次` : "尚無紀錄";
+
+        const fg = funP.favoriteGov || { top: { name: "尚無紀錄", count: 0 }, revolutions: 0, peaceful: 0 };
+        document.getElementById('p-fav-gov').innerText = fg.top.name;
+        document.getElementById('p-gov-rev-detail').innerText = `暴力革命 ${fg.revolutions} 次 / 和平演變 ${fg.peaceful} 次`;
+
+        // 各時代最愛領袖與奇觀
+        renderAgeFavorites('p-age-favorites', funP.ageFavorites);
+
+        // 15 項個人極限紀錄與趣味統計
+        const rec = funP.records || {};
+        const recItems = [
+            { icon: "🌾", label: "最高單回合食物產量", val: `+${rec.maxFoodRate || 0}`, sub: "食物 / 回合" },
+            { icon: "⛏️", label: "最高單回合礦物產量", val: `+${rec.maxResRate || 0}`, sub: "礦物 / 回合" },
+            { icon: "🔬", label: "最高單回合科學產量", val: `+${rec.maxSciRate || 0}`, sub: "科學 / 回合" },
+            { icon: "🎨", label: "最高單回合文化產量", val: `+${rec.maxCultRate || 0}`, sub: "文化 / 回合" },
+            { icon: "✨", label: "單一奇觀最高得分", val: `${rec.maxSingleWonderScore || 0} 分`, sub: rec.maxSingleWonderName || "尚無紀錄" },
+            { icon: "🚀", label: "歷史最高武力值", val: `${rec.maxStrength || 0}`, sub: "最高總軍力" },
+            { icon: "⏳", label: "歷史最多行政點(白點)", val: `${rec.maxCA || 0} 點`, sub: "單回合上限" },
+            { icon: "🎖️", label: "歷史最多軍事點(紅點)", val: `${rec.maxMA || 0} 點`, sub: "單回合上限" },
+            { icon: "🏆", label: "單場蓋過最多奇觀", val: `${rec.maxWondersInGame || 0} 座`, sub: "單場完工紀錄" },
+            { icon: "🏙️", label: "單場蓋過最多城市建築", val: `${rec.maxUrbanInGame || 0} 棟`, sub: "單場建設紀錄" },
+            { icon: "🐀", label: "鼠疫被吃掉的食物", val: `${rec.ratsFoodLostTotal || 0} 食物`, sub: `單場最高損失 ${rec.ratsFoodLostMax || 0}` },
+            { icon: "📜", label: "黑暗時代被扣的科學", val: `${rec.darkAgesSciLostTotal || 0} 科學`, sub: `單場最高損失 ${rec.darkAgesSciLostMax || 0}` },
+            { icon: "🏴‍☠️", label: "單一文化戰爭最高分", val: `${rec.maxWarCulture || 0} 分`, sub: "無恥掠奪紀錄" },
+            { icon: "🌍", label: "單一時代III影響最高分", val: `${rec.maxImpactCulture || 0} 分`, sub: rec.maxImpactName || "尚無紀錄" },
+            { icon: "💢", label: "歷史累計人民暴動", val: `${rec.uprisingsTotal || 0} 次`, sub: "血汗工廠指數" }
+        ];
+        document.getElementById('p-extreme-records').innerHTML = recItems.map(it => `
+            <div class="stat-box">
+                <div class="stat-value">${it.val}</div>
+                <div class="stat-sub">${it.sub}</div>
+                <div class="stat-label">${it.icon} ${it.label}</div>
+            </div>
+        `).join('');
     }
 
     function drawWinRateChart(canvasId, timelineData, targetPlayers) {
@@ -338,15 +600,19 @@
             if(data.error) { document.getElementById('page-title').innerText = "❌ " + data.error; return; }
 
             // =========================
-            // 總體排行榜
+            // 總體排行榜 (?p=p_leaderboard)
             // =========================
             if (data.isLeaderboard) {
                 document.getElementById('leaderboard-view').style.display = 'block';
-                document.getElementById('page-title').innerText = "👑 賽季積分總榜";
+                const urlVer = new URLSearchParams(window.location.search).get('v');
+                document.getElementById('page-title').innerText = urlVer === "1" ? "🎪 賽季趣味風雲榜" : "👑 賽季積分與趣味總榜";
                 
                 // 更新時光轉化器
                 document.getElementById('g-totalGames').innerText = data.totalGroupGames;
                 document.getElementById('g-totalHours').innerText = data.totalGroupGames * 4;
+
+                // 渲染趣味排名統計與各時代最愛
+                renderFunLeaderboard(data.funLeaderboard);
 
                 if (data.timeline && data.timeline.length > 0) drawWinRateChart('leaderboardWinRateChart', data.timeline, PLAYERS);
                 if (data.data && data.data.length > 0) drawStackedBarChart('leaderboardStackedChart', data.data);
@@ -394,7 +660,7 @@
             }
 
             // =========================
-            // 單一玩家專屬面板
+            // 單一玩家專屬面板 (?p=p_HASHCODE)
             // =========================
             document.getElementById('dashboard-view').style.display = 'block';
             document.getElementById('page-title').innerText = `📊 ${data.name} 的專屬儀表板`;
@@ -404,6 +670,9 @@
             document.getElementById('p-bestmate').innerText = data.bestMate.name;
             document.getElementById('p-mategames').innerText = data.bestMate.games;
             document.getElementById('p-streak').innerText = data.streak;
+
+            // 渲染個人趣味統計、後宮指數与歷史極限紀錄
+            renderFunPersonal(data.funPersonal);
 
             if (data.allTime && data.allTime.totalGames > 0) drawDoughnutChart('personalDoughnut', data.allTime.ranks);
             if (data.history && data.history.length > 0) drawMovingAvgChart('personalMAChart', data.history);

@@ -62,3 +62,29 @@ Assuming your GitHub Pages URL is `https://YOUR_NAME.github.io/score/`:
 *   **Score Entry Form:** `https://YOUR_NAME.github.io/score/`
 *   **Private Dashboard (Example):** `https://YOUR_NAME.github.io/score/?p=p_1a2b3c`
 *   **Global Leaderboard:** `https://YOUR_NAME.github.io/score/?p=p_leaderboard`
+
+
+---
+
+## 🎪 2.0 升級：自動 Replay 解析與 27 項趣味統計系統
+
+### 1. 總榜雙版本網址 (`?p=p_leaderboard`)
+* **版本 1（僅顯示趣味排名統計）**：`https://fcchen.github.io/tta-tourment/?p=p_leaderboard&v=1`
+* **版本 2（趣味排名統計 + 賽季積分名次排名）**：`https://fcchen.github.io/tta-tourment/?p=p_leaderboard&v=2`（或預設 `?p=p_leaderboard`）
+* 頁面頂端亦提供切換按鈕，可隨時在「版本 1」與「版本 2」間無縫切換。
+
+### 2. 免填排名！一鍵登錄 Game ID
+* 紀錄比賽結果頁面（`https://fcchen.github.io/tta-tourment/`）現在**只需要輸入 10 碼英文觀戰代碼（Game ID）**即可送出。
+* 執行 `auto_collector.py` 時，系統會自動從 Google Sheets 撈取尚未解析的 `GameID`，透過遊戲 Replay 擷取 `TTA::GameStats` 與 `TTA::PlayerGraphStats` 記憶體數據，**自動回填第 1～4 名玩家與 27 項趣味數據**至試算表的 `GameStats` 分頁。
+
+### 3. 自動收集器使用方式
+```powershell
+# 1. 測試解析器與 27 項趣味指標計算邏輯
+python C:\Users\dQoQb\TTA_log_parsing\tta_parser.py --test
+
+# 2. 自動從 Google Sheet 撈取所有未解析的 GameID，批次透過遊戲 Replay 解析並上傳
+python C:\Users\dQoQb\TTA_log_parsing\auto_collector.py
+
+# 3. 針對目前遊戲中已開啟的 Replay 立即擷取記憶體數據並上傳
+python C:\Users\dQoQb\TTA_log_parsing\auto_collector.py --capture-current GATOVUJUMA
+```

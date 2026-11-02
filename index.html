@@ -501,10 +501,14 @@
             { icon: "⏳", label: "歷史最多行政點(白點)", val: `${rec.maxCA || 0} 點`, sub: "單回合上限" },
             { icon: "🎖️", label: "歷史最多軍事點(紅點)", val: `${rec.maxMA || 0} 點`, sub: "單回合上限" },
             { icon: "🏆", label: "單場蓋過最多奇觀", val: `${rec.maxWondersInGame || 0} 座`, sub: "單場完工紀錄" },
-            { icon: "🏙️", label: "單場蓋過最多城市建築", val: `${rec.maxUrbanInGame || 0} 棟`, sub: "單場建設紀錄" },
+            { icon: "🏙️", label: "同時最多城市建築工人", val: `${rec.maxUrbanInGame || 0} 人`, sub: "城市建築王紀錄" },
             { icon: "🐀", label: "鼠疫被吃掉的食物", val: `${rec.ratsFoodLostTotal || 0} 食物`, sub: `單場最高損失 ${rec.ratsFoodLostMax || 0}` },
             { icon: "📜", label: "黑暗時代被扣的科學", val: `${rec.darkAgesSciLostTotal || 0} 科學`, sub: `單場最高損失 ${rec.darkAgesSciLostMax || 0}` },
-            { icon: "🏴‍☠️", label: "單一文化戰爭最高分", val: `${rec.maxWarCulture || 0} 分`, sub: "無恥掠奪紀錄" },
+            { icon: "🏧", label: "單場戰爭奪走最多文化", val: `${rec.maxWarCulture || 0} 分`, sub: "提款王紀錄" },
+            { icon: "💸", label: "單場戰爭被奪最多文化", val: `${rec.maxWarCultureLost || 0} 分`, sub: "提款機紀錄" },
+            { icon: "🥫", label: "同時最多食物庫存", val: `${rec.maxFoodStock || 0}`, sub: "食物" },
+            { icon: "🪨", label: "同時最多礦物庫存", val: `${rec.maxResStock || 0}`, sub: "礦物" },
+            { icon: "📚", label: "同時最多科學庫存", val: `${rec.maxSciStock || 0}`, sub: "科學" },
             { icon: "🌍", label: "單一時代III影響最高分", val: `${rec.maxImpactCulture || 0} 分`, sub: rec.maxImpactName || "尚無紀錄" },
             { icon: "💢", label: "歷史累計人民暴動", val: `${rec.uprisingsTotal || 0} 次`, sub: "血汗工廠指數" }
         ];

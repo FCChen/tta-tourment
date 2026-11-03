@@ -165,6 +165,8 @@
         <h3 class="section-title">🚀 個人歷史極限紀錄 & 趣味統計</h3>
         <div class="stat-grid-3" id="p-extreme-records"></div>
 
+        <!-- 賽季積分相關（僅完整版顯示，需 &k=金鑰） -->
+        <div id="dashboard-competitive-section" style="display:none;">
         <h3 class="section-title">📊 自我成長與分佈分析</h3>
         <div class="chart-grid">
             <div class="card" style="margin-bottom:0; padding:1rem;">
@@ -197,6 +199,7 @@
             <div class="stat-box"><div class="stat-value" id="s-first-rec">0 (0%)</div><div class="stat-label">第一名機率 <span class="rank-badge" id="r-first-rec"></span></div></div>
             <div class="stat-box"><div class="stat-value" id="s-top2-rec">0 (0%)</div><div class="stat-label">前兩名機率 <span class="rank-badge" id="r-top2-rec"></span></div></div>
         </div>
+        </div>
     </div>
 
     <!-- 狀態四：總體排行榜 (?p=p_leaderboard，支援版本1與版本2) -->
@@ -208,17 +211,12 @@
             <p style="font-size: 0.7rem; margin-top:0.8rem; opacity: 0.7;">*以每局平均 4 小時估算</p>
         </div>
 
-        <!-- 版本 1 / 版本 2 切換按鈕 -->
-        <div class="version-tabs">
-            <button class="version-tab" id="tab-v1" onclick="setLeaderboardVersion(1)">🎪 版本 1：僅顯示趣味統計</button>
-            <button class="version-tab active" id="tab-v2" onclick="setLeaderboardVersion(2)">🏆 版本 2：趣味統計 + 賽季積分榜</button>
-        </div>
 
         <!-- 區塊 A：趣味排名統計 & 各時代熱門領袖奇觀 (版本 1 & 版本 2 皆顯示) -->
         <div id="leaderboard-fun-section">
             <p class="notice-text">* 趣味風雲榜僅統計參與超過 10 場之玩家。數據由 Replay 解析器自動挖掘。</p>
 
-            <h3 class="section-title">🎪 賽季趣味風雲榜 (27 大稱號)</h3>
+            <h3 class="section-title">🎪 賽季趣味風雲榜 (<span id="fun-award-count">35</span> 大稱號)</h3>
             <div class="fun-awards-grid" id="fun-awards-container"></div>
 
             <h3 class="section-title">🏛️ 全服各時代人氣王（最愛領袖 & 最愛奇觀）</h3>
@@ -226,7 +224,7 @@
         </div>
 
         <!-- 區塊 B：原本的賽季積分名次排名統計 (僅版本 2 顯示) -->
-        <div id="leaderboard-competitive-section">
+        <div id="leaderboard-competitive-section" style="display:none;">
             <p class="notice-text">* 整體排名預設依「場均積分」排序。參與超過 10 場之玩家才列入榜單。</p>
             
             <h3 class="section-title" style="border-bottom:none;">🎨 玩家風格：名次分佈比例</h3>
@@ -294,13 +292,6 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const playerHash = urlParams.get('p');
-        const verParam = urlParams.get('v');
-
-        if (verParam === "1") {
-            setLeaderboardVersion(1, false);
-        } else {
-            setLeaderboardVersion(2, false);
-        }
 
         if (playerHash) {
             document.getElementById('loading-view').style.display = 'block';
@@ -311,31 +302,8 @@
         }
     };
 
-    function setLeaderboardVersion(ver, updateUrl = true) {
-        const compSec = document.getElementById('leaderboard-competitive-section');
-        const t1 = document.getElementById('tab-v1');
-        const t2 = document.getElementById('tab-v2');
-        if (ver === 1) {
-            compSec.style.display = 'none';
-            t1.className = 'version-tab active';
-            t2.className = 'version-tab';
-            if (document.getElementById('leaderboard-view').style.display === 'block') {
-                document.getElementById('page-title').innerText = "🎪 賽季趣味風雲榜";
-            }
-        } else {
-            compSec.style.display = 'block';
-            t1.className = 'version-tab';
-            t2.className = 'version-tab active';
-            if (document.getElementById('leaderboard-view').style.display === 'block') {
-                document.getElementById('page-title').innerText = "👑 賽季積分與趣味總榜";
-            }
-        }
-        if (updateUrl && window.history.replaceState) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('v', String(ver));
-            window.history.replaceState({}, '', url.toString());
-        }
-    }
+    // 完整版（趣味統計 + 賽季積分）需要網址帶 &k=金鑰；沒有金鑰時後端只回傳趣味統計
+    const FULL_KEY = new URLSearchParams(window.location.search).get('k') || "";
 
     function submitResult() {
         const gameIdVal = document.getElementById('gameId').value.trim().toUpperCase();
@@ -436,6 +404,8 @@
             awardsEl.innerHTML = `<div class="card" style="grid-column: 1 / -1; text-align:center; color:var(--text-muted);">目前尚無趣味統計資料，請確認後端 Code.gs 已更新並執行 auto_collector.py。</div>`;
             return;
         }
+        const cntEl = document.getElementById('fun-award-count');
+        if (cntEl) cntEl.innerText = funLb.awards.length;
         awardsEl.innerHTML = funLb.awards.map(aw => `
             <div class="fun-award-card">
                 <div>
@@ -489,27 +459,34 @@
         // 各時代最愛領袖與奇觀
         renderAgeFavorites('p-age-favorites', funP.ageFavorites);
 
-        // 15 項個人極限紀錄與趣味統計
+        // 個人單場極限紀錄（附 GameID 與回合，方便查閱）
         const rec = funP.records || {};
+        const recAt = rec.at || {};
+        const where = (k) => {
+            const a = recAt[k];
+            if (!a) return "";
+            return a.r ? `${a.g} 第${a.r}回合` : a.g;
+        };
+        const sub2 = (k, txt) => [txt, where(k)].filter(Boolean).join("｜") || "尚無紀錄";
         const recItems = [
-            { icon: "🌾", label: "最高單回合食物產量", val: `+${rec.maxFoodRate || 0}`, sub: "食物 / 回合" },
-            { icon: "⛏️", label: "最高單回合礦物產量", val: `+${rec.maxResRate || 0}`, sub: "礦物 / 回合" },
-            { icon: "🔬", label: "最高單回合科學產量", val: `+${rec.maxSciRate || 0}`, sub: "科學 / 回合" },
-            { icon: "🎨", label: "最高單回合文化產量", val: `+${rec.maxCultRate || 0}`, sub: "文化 / 回合" },
-            { icon: "✨", label: "單一奇觀最高得分", val: `${rec.maxSingleWonderScore || 0} 分`, sub: rec.maxSingleWonderName || "尚無紀錄" },
-            { icon: "🚀", label: "歷史最高武力值", val: `${rec.maxStrength || 0}`, sub: "最高總軍力" },
-            { icon: "⏳", label: "歷史最多行政點(白點)", val: `${rec.maxCA || 0} 點`, sub: "單回合上限" },
-            { icon: "🎖️", label: "歷史最多軍事點(紅點)", val: `${rec.maxMA || 0} 點`, sub: "單回合上限" },
-            { icon: "🏆", label: "單場蓋過最多奇觀", val: `${rec.maxWondersInGame || 0} 座`, sub: "單場完工紀錄" },
-            { icon: "🏙️", label: "同時最多城市建築工人", val: `${rec.maxUrbanInGame || 0} 人`, sub: "城市建築王紀錄" },
-            { icon: "🐀", label: "鼠疫被吃掉的食物", val: `${rec.ratsFoodLostTotal || 0} 食物`, sub: `單場最高損失 ${rec.ratsFoodLostMax || 0}` },
-            { icon: "📜", label: "黑暗時代被扣的科學", val: `${rec.darkAgesSciLostTotal || 0} 科學`, sub: `單場最高損失 ${rec.darkAgesSciLostMax || 0}` },
-            { icon: "🏧", label: "單場戰爭奪走最多文化", val: `${rec.maxWarCulture || 0} 分`, sub: "提款王紀錄" },
-            { icon: "💸", label: "單場戰爭被奪最多文化", val: `${rec.maxWarCultureLost || 0} 分`, sub: "提款機紀錄" },
-            { icon: "🥫", label: "同時最多食物庫存", val: `${rec.maxFoodStock || 0}`, sub: "食物" },
-            { icon: "🪨", label: "同時最多礦物庫存", val: `${rec.maxResStock || 0}`, sub: "礦物" },
-            { icon: "📚", label: "同時最多科學庫存", val: `${rec.maxSciStock || 0}`, sub: "科學" },
-            { icon: "🌍", label: "單一時代III影響最高分", val: `${rec.maxImpactCulture || 0} 分`, sub: rec.maxImpactName || "尚無紀錄" },
+            { icon: "🌾", label: "最高單回合食物產量", val: `+${rec.maxFoodRate || 0}`, sub: sub2("maxFoodRate", "") },
+            { icon: "⛏️", label: "最高單回合礦物產量", val: `+${rec.maxResRate || 0}`, sub: sub2("maxResRate", "") },
+            { icon: "🔬", label: "最高單回合科學產量", val: `+${rec.maxSciRate || 0}`, sub: sub2("maxSciRate", "") },
+            { icon: "🎨", label: "最高單回合文化產量", val: `+${rec.maxCultRate || 0}`, sub: sub2("maxCultRate", "") },
+            { icon: "✨", label: "單一奇觀最高得分", val: `${rec.maxSingleWonderScore || 0} 分`, sub: sub2("maxSingleWonderScore", rec.maxSingleWonderName || "") },
+            { icon: "🚀", label: "歷史最高武力值", val: `${rec.maxStrength || 0}`, sub: sub2("maxStrength", "") },
+            { icon: "⏳", label: "歷史最多行政點(白點)", val: `${rec.maxCA || 0} 點`, sub: sub2("maxCA", "") },
+            { icon: "🎖️", label: "歷史最多軍事點(紅點)", val: `${rec.maxMA || 0} 點`, sub: sub2("maxMA", "") },
+            { icon: "🏆", label: "單場蓋過最多奇觀", val: `${rec.maxWondersInGame || 0} 座`, sub: sub2("maxWondersInGame", "") },
+            { icon: "🏙️", label: "同時最多城市建築工人", val: `${rec.maxUrbanInGame || 0} 人`, sub: sub2("maxUrbanInGame", "不含農場礦場") },
+            { icon: "🐀", label: "單場鼠疫被吃最多食物", val: `${rec.ratsFoodLostMax || 0} 食物`, sub: sub2("ratsFoodLostMax", `累計 ${rec.ratsFoodLostTotal || 0}`) },
+            { icon: "📜", label: "單場黑暗時代被扣最多科學", val: `${rec.darkAgesSciLostMax || 0} 科學`, sub: sub2("darkAgesSciLostMax", `累計 ${rec.darkAgesSciLostTotal || 0}`) },
+            { icon: "🏧", label: "單場戰爭奪走最多文化", val: `${rec.maxWarCulture || 0} 分`, sub: sub2("maxWarCulture", "") },
+            { icon: "💸", label: "單場戰爭被奪最多文化", val: `${rec.maxWarCultureLost || 0} 分`, sub: sub2("maxWarCultureLost", "") },
+            { icon: "🥫", label: "同時最多食物庫存", val: `${rec.maxFoodStock || 0}`, sub: sub2("maxFoodStock", "") },
+            { icon: "🪨", label: "同時最多礦物庫存", val: `${rec.maxResStock || 0}`, sub: sub2("maxResStock", "") },
+            { icon: "📚", label: "同時最多科學庫存", val: `${rec.maxSciStock || 0}`, sub: sub2("maxSciStock", "") },
+            { icon: "🌍", label: "單一時代III影響最高分", val: `${rec.maxImpactCulture || 0} 分`, sub: sub2("maxImpactCulture", rec.maxImpactName || "") },
             { icon: "💢", label: "歷史累計人民暴動", val: `${rec.uprisingsTotal || 0} 次`, sub: "血汗工廠指數" }
         ];
         document.getElementById('p-extreme-records').innerHTML = recItems.map(it => `
@@ -597,7 +574,7 @@
     }
 
     function fetchDashboard(hash) {
-        fetch(API_URL + "?p=" + hash)
+        fetch(API_URL + "?p=" + encodeURIComponent(hash) + (FULL_KEY ? "&k=" + encodeURIComponent(FULL_KEY) : ""))
         .then(res => res.json())
         .then(data => {
             document.getElementById('loading-view').style.display = 'none';
@@ -608,8 +585,7 @@
             // =========================
             if (data.isLeaderboard) {
                 document.getElementById('leaderboard-view').style.display = 'block';
-                const urlVer = new URLSearchParams(window.location.search).get('v');
-                document.getElementById('page-title').innerText = urlVer === "1" ? "🎪 賽季趣味風雲榜" : "👑 賽季積分與趣味總榜";
+                document.getElementById('page-title').innerText = data.fullView ? "👑 賽季積分與趣味總榜" : "🎪 賽季趣味風雲榜";
                 
                 // 更新時光轉化器
                 document.getElementById('g-totalGames').innerText = data.totalGroupGames;
@@ -617,6 +593,8 @@
 
                 // 渲染趣味排名統計與各時代最愛
                 renderFunLeaderboard(data.funLeaderboard);
+                if (!data.fullView) return;   // 公開版：只顯示趣味統計
+                document.getElementById('leaderboard-competitive-section').style.display = 'block';
 
                 if (data.timeline && data.timeline.length > 0) drawWinRateChart('leaderboardWinRateChart', data.timeline, PLAYERS);
                 if (data.data && data.data.length > 0) drawStackedBarChart('leaderboardStackedChart', data.data);
@@ -667,7 +645,7 @@
             // 單一玩家專屬面板 (?p=p_HASHCODE)
             // =========================
             document.getElementById('dashboard-view').style.display = 'block';
-            document.getElementById('page-title').innerText = `📊 ${data.name} 的專屬儀表板`;
+            document.getElementById('page-title').innerText = data.fullView ? `📊 ${data.name} 的專屬儀表板` : `🎪 ${data.name} 的趣味檔案`;
             
             // 填入成就徽章與數據
             document.getElementById('p-badge').innerText = getMilestoneBadge(data.allTime.totalGames);
@@ -677,6 +655,8 @@
 
             // 渲染個人趣味統計、後宮指數与歷史極限紀錄
             renderFunPersonal(data.funPersonal);
+            if (!data.fullView) return;   // 公開版：只顯示趣味統計
+            document.getElementById('dashboard-competitive-section').style.display = 'block';
 
             if (data.allTime && data.allTime.totalGames > 0) drawDoughnutChart('personalDoughnut', data.allTime.ranks);
             if (data.history && data.history.length > 0) drawMovingAvgChart('personalMAChart', data.history);

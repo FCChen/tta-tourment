@@ -342,7 +342,8 @@ const REC_FIELDS = [
   ["ratsFoodLostMax", "rats_food_lost"],
   ["darkAgesSciLostMax", "dark_ages_science_lost"],
   ["maxAggrWinsInGame", "aggressions_succeeded"],
-  ["maxAggrDefendedInGame", "aggressions_defended"]
+  ["maxAggrDefendedInGame", "aggressions_defended"],
+  ["maxWarDemolitions", "war_demolitions_max"]
 ];
 
 function pearson(xs, ys) {
@@ -605,7 +606,7 @@ function computeFunStatistics(parsedGamesMap, allStats) {
     { cat: "war", id: "war_victim_rate", icon: "🎯", title: "全球公敵・嘲諷滿點", subtitle: "苦主王（場均被宣戰次數最高）", metric: "warVictimRate", unit: "次/場", descFn: (st) => `場均被宣戰 ${st.warVictimRate} 次 (共 ${st.warsOnMe} 次)` },
     { cat: "war", id: "counter_win", icon: "🥊", title: "以逸待勞・反打王", subtitle: `反打王（被宣戰卻反而戰勝的比率最高，需 ≥${MIN_WAR_SAMPLES} 場已結算戰爭）`, metric: "counterWinRate", unit: "%", eligibleFn: (st) => st.warsDefResolved >= MIN_WAR_SAMPLES, descFn: (st) => `反打成功 ${st.counterWinRate}% (${st.warsWonDef}/${st.warsDefResolved})` },
     { cat: "war", id: "putin", icon: "🐻", title: "出師不利・普丁", subtitle: `普丁（宣戰別人卻反而戰敗的比率最高，需 ≥${MIN_WAR_SAMPLES} 場已結算戰爭）`, metric: "putinRate", unit: "%", eligibleFn: (st) => st.warsAttResolved >= MIN_WAR_SAMPLES, descFn: (st) => `宣戰後戰敗 ${st.putinRate}% (${st.warsLostAtt}/${st.warsAttResolved})` },
-    { cat: "war", id: "north_korea", icon: "🚀", title: "勒緊褲帶・北韓", subtitle: "北韓（宣戰後當回合拆掉最多農場、礦場、城市建築）", metric: "warDemolitions", unit: "棟", descFn: (st) => `宣戰後拆了 ${st.warDemolitions} 棟建築` },
+    { cat: "war", id: "north_korea", icon: "🚀", title: "勒緊褲帶・北韓", subtitle: "北韓（單次宣戰的當回合，拆掉最多農場、礦場、城市建築）", metric: "maxWarDemolitions", unit: "棟", descFn: (st) => `單次宣戰拆了 ${st.maxWarDemolitions} 棟${at(st, "maxWarDemolitions")}（累計 ${st.warDemolitions} 棟）` },
     { cat: "war", id: "war_culture_max", icon: "🏧", title: "人肉提款・提款王", subtitle: "提款王（單場戰爭奪走最多文化）", metric: "maxWarCulture", unit: "分", descFn: (st) => `單場戰爭奪走 ${st.maxWarCulture} 文化${at(st, "maxWarCulture")}` },
     { cat: "war", id: "war_culture_lost_max", icon: "💸", title: "行動提款機・提款機王", subtitle: "提款機王（單場戰爭被奪走最多文化）", metric: "maxWarCultureLost", unit: "分", descFn: (st) => `單場戰爭被奪走 ${st.maxWarCultureLost} 文化${at(st, "maxWarCultureLost")}` },
     { cat: "war", id: "peace_rate", icon: "☮️", title: "愛與和平・和平主義者", subtitle: "和平王（不宣戰也不侵略的場次比例最高）", metric: "peaceRate", unit: "%", descFn: (st) => `和平場次 ${st.peaceRate}% (${st.peaceGames}/${st.parsedGames})` },

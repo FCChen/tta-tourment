@@ -1,0 +1,25 @@
+BEGUMELUMA: 侵略, 宣戰, 戰爭奪文化, 革命
+KIHEBILUMA: 侵略, 革命, 黑暗時代
+ZACOCALUMA: 侵略, 宣戰, 戰爭奪文化, 暴動, 革命
+TELUNIDUMA: 侵略, 宣戰, 戰爭奪文化, 革命, 黑暗時代
+BEGUMELUMA: 侵略, 宣戰, 戰爭奪文化, 革命
+KIHEBILUMA: 侵略, 革命, 黑暗時代
+ZACOCALUMA: 侵略, 宣戰, 戰爭奪文化, 暴動, 革命
+GEZITELUMA: 侵略, 宣戰, 戰爭奪文化, 毀約, 革命
+NONEMILUMA: 侵略, 革命, 黑暗時代
+LIZOGOLUMA: 侵略, 革命, 黑暗時代
+NUVEPOLUMA: 侵略, 宣戰, 戰爭奪文化, 毀約, 革命, 黑暗時代
+LIZEROLUMA: 侵略, 宣戰, 革命
+VASIHOLUMA: 侵略, 革命, 黑暗時代
+DIJOROLUMA: 宣戰, 戰爭奪文化, 黑暗時代
+DISAJULUMA: 侵略, 宣戰, 戰爭奪文化, 革命
+JITEZABUMA: 侵略, 宣戰, 革命, 黑暗時代
+RESIHEBUMA: 侵略, 宣戰, 革命, 黑暗時代
+LADIMOBUMA: 革命, 黑暗時代
+MAJUDIBUMA: 侵略, 宣戰, 戰爭奪文化, 革命
+SAZISIBUMA: 侵略, 宣戰, 戰爭奪文化, 毀約, 革命, 黑暗時代
+CEHALIBUMA: 侵略, 宣戰, 毀約, 革命, 黑暗時代
+CUVUVOBUMA: 侵略, 宣戰, 革命, 黑暗時代
+SOVORUBUMA: 侵略, 宣戰, 戰爭奪文化
+ZIVULEDUMA: 宣戰, 革命
+MUTOLEDUMA: 侵略, 宣戰, 戰爭奪文化, 毀約, 黑暗時代

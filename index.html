@@ -57,6 +57,14 @@
         .hero-banner { background: var(--primary); color: white; text-align: center; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.25rem; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.3); }
 
         /* 版本切換器 */
+        .award-cat-title { grid-column: 1 / -1; font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 1rem 0 0.25rem; padding-bottom: 0.25rem; border-bottom: 2px solid var(--border); }
+        .my-award-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
+        .my-award-item { background: #FFFFFF; border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.75rem; }
+        .my-award-item.top { border-color: #F59E0B; background: #FFFBEB; }
+        .my-award-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.85rem; }
+        .my-award-rank { font-size: 0.75rem; font-weight: 800; color: var(--primary); white-space: nowrap; }
+        .my-award-val { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+        .analysis-note { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; line-height: 1.5; }
         .version-tabs { display: flex; gap: 0.5rem; background: #E5E7EB; padding: 0.35rem; border-radius: 10px; margin-bottom: 1.25rem; }
         .version-tab { flex: 1; text-align: center; padding: 0.6rem 0.5rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; color: #4B5563; transition: 0.2s; border: none; background: transparent; }
         .version-tab.active { background: #FFFFFF; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
@@ -137,6 +145,9 @@
             </div>
         </div>
 
+        <h3 class="section-title">🎪 我的趣味統計全覽（與全服比較）</h3>
+        <div id="p-award-overview"></div>
+
         <!-- 新增：個人好色指數、後宮與政體偏好 -->
         <h3 class="section-title">💗 後宮與執政風格檔案</h3>
         <div class="stat-grid-3">
@@ -167,6 +178,13 @@
 
         <!-- 賽季積分相關（僅完整版顯示，需 &k=金鑰） -->
         <div id="dashboard-competitive-section" style="display:none;">
+        <h3 class="section-title">🎲 我的行動順位戰績</h3>
+        <div class="card table-wrapper">
+            <table class="data-table">
+                <thead><tr><th>行動順位</th><th>場數</th><th style="color:var(--primary);">場均積分</th><th>第一名機率</th><th>前兩名機率</th></tr></thead>
+                <tbody id="p-seat-stats"></tbody>
+            </table>
+        </div>
         <h3 class="section-title">📊 自我成長與分佈分析</h3>
         <div class="chart-grid">
             <div class="card" style="margin-bottom:0; padding:1rem;">
@@ -221,6 +239,24 @@
 
             <h3 class="section-title">🏛️ 全服各時代人氣王（最愛領袖 & 最愛奇觀）</h3>
             <div class="age-grid" id="global-age-favorites"></div>
+
+            <h3 class="section-title">🔍 數據分析：行動順位對排名的影響</h3>
+            <div class="card table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>行動順位</th><th>場數</th><th style="color:var(--primary);">場均積分</th><th>第一名機率</th><th>前兩名機率</th></tr></thead>
+                    <tbody id="analysis-seats"></tbody>
+                </table>
+                <p class="analysis-note">* P1 = 最先行動，P4 = 最後行動。積分依 8 / 5 / 3 / 2 計算，統計所有已解析的 4 人場次（含非賽事玩家）。</p>
+            </div>
+
+            <h3 class="section-title">🔍 數據分析：總產量與名次的相關性</h3>
+            <div class="card table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th style="text-align:left; padding-left:1rem;">指標</th><th>相關係數 r</th><th>第 1 名平均</th><th>第 2 名平均</th><th>第 3 名平均</th><th>第 4 名平均</th></tr></thead>
+                    <tbody id="analysis-corr"></tbody>
+                </table>
+                <p class="analysis-note">* 名次 1~4 視為線性數值，計算每位玩家每場的「總產量」與名次的皮爾森相關係數。r 越接近 -1，代表產量越高、名次越前面；接近 0 代表幾乎無關。投降的玩家不列入。</p>
+            </div>
         </div>
 
         <!-- 區塊 B：原本的賽季積分名次排名統計 (僅版本 2 顯示) -->
@@ -406,7 +442,7 @@
         }
         const cntEl = document.getElementById('fun-award-count');
         if (cntEl) cntEl.innerText = funLb.awards.length;
-        awardsEl.innerHTML = funLb.awards.map(aw => `
+        const awardCard = (aw) => `
             <div class="fun-award-card">
                 <div>
                     <div class="fun-award-header">
@@ -422,8 +458,31 @@
                     </div>
                     <div class="fun-runner-up">次高：${aw.runnerUp || "-"}</div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        const cats = funLb.categories || [{ id: undefined, title: "" }];
+        awardsEl.innerHTML = cats.map(c => {
+            const list = funLb.awards.filter(aw => aw.cat === c.id);
+            if (!list.length) return "";
+            return (c.title ? `<div class="award-cat-title">${c.title}</div>` : "") + list.map(awardCard).join('');
+        }).join('');
+
+        const an = funLb.analysis;
+        if (an) {
+            document.getElementById('analysis-seats').innerHTML = (an.seats || []).map(s =>
+                `<tr><td style="font-weight:700;">P${s.seat}${s.seat === 1 ? "（最先）" : s.seat === 4 ? "（最後）" : ""}</td><td>${s.games}</td><td style="color:var(--primary); font-weight:800;">${s.avgPoints}</td><td>${s.firstPct}%</td><td>${s.top2Pct}%</td></tr>`
+            ).join('');
+            document.getElementById('analysis-corr').innerHTML = (an.correlation || []).map(c => {
+                const r = c.r === null ? "-" : c.r;
+                let hint = "";
+                if (c.r !== null) {
+                    const ar = Math.abs(c.r);
+                    const strength = ar >= 0.5 ? "強" : ar >= 0.3 ? "中度" : ar >= 0.1 ? "弱" : "幾乎無";
+                    hint = c.r < 0 ? `${strength}相關：產量越高名次越前` : `${strength}相關`;
+                    if (ar < 0.1) hint = "幾乎無相關";
+                }
+                return `<tr><td style="text-align:left; padding-left:1rem; font-weight:700;">${c.label}<div style="font-size:0.7rem; color:var(--text-muted); font-weight:400;">${hint}（${c.samples} 筆）</div></td><td style="font-weight:800; color:var(--primary);">${r}</td>${c.avgByRank.map(v => `<td>${v}</td>`).join('')}</tr>`;
+            }).join('');
+        }
 
         renderAgeFavorites('global-age-favorites', funLb.ageFavorites);
     }
@@ -442,6 +501,25 @@
         } else {
             crownsEl.innerHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">目前暫無全服第一名頭銜，繼續加油！</span>`;
         }
+
+        // 我的趣味統計全覽（依分類，附全服名次）
+        const ov = document.getElementById('p-award-overview');
+        const vals = funP.awardValues || [];
+        const catList = funP.categories || [
+            { id: "result", title: "🏆 勝負與逆轉" }, { id: "war", title: "⚔️ 戰爭" }, { id: "aggr", title: "🗡️ 侵略與防守" },
+            { id: "politics", title: "🕊️ 外交、政治與事件" }, { id: "build", title: "🏛️ 建設與奇觀" },
+            { id: "production", title: "📈 產能與行動紀錄" }, { id: "stock", title: "📦 庫存紀錄" }, { id: "style", title: "🎲 風格與災難" }
+        ];
+        ov.innerHTML = catList.map(c => {
+            const list = vals.filter(v => v.cat === c.id);
+            if (!list.length) return "";
+            return `<div class="award-cat-title" style="display:block;">${c.title}</div><div class="my-award-list">` + list.map(v => `
+                <div class="my-award-item ${v.isTop ? 'top' : ''}" title="${v.subtitle}">
+                    <div class="my-award-head"><span>${v.icon} ${v.title}</span>
+                        <span class="my-award-rank">${v.isTop ? "👑 " : ""}${v.rank ? `第 ${v.rank} / ${v.poolSize} 名` : (v.reason || "-")}</span></div>
+                    <div class="my-award-val">${v.valueText}</div>
+                </div>`).join('') + `</div>`;
+        }).join('');
 
         // 好色指數 & 最愛後宮 & 政體
         const hi = funP.hornyIndex || { pct: 0, femaleCount: 0, totalLeaders: 0 };
@@ -657,6 +735,9 @@
             renderFunPersonal(data.funPersonal);
             if (!data.fullView) return;   // 公開版：只顯示趣味統計
             document.getElementById('dashboard-competitive-section').style.display = 'block';
+            document.getElementById('p-seat-stats').innerHTML = (data.seatStats || []).map(s =>
+                `<tr><td style="font-weight:700;">P${s.seat}${s.seat === 1 ? "（最先）" : s.seat === 4 ? "（最後）" : ""}</td><td>${s.games}</td><td style="color:var(--primary); font-weight:800;">${s.games ? s.avgPoints : "-"}</td><td>${s.games ? s.firstPct + "%" : "-"}</td><td>${s.games ? s.top2Pct + "%" : "-"}</td></tr>`
+            ).join('');
 
             if (data.allTime && data.allTime.totalGames > 0) drawDoughnutChart('personalDoughnut', data.allTime.ranks);
             if (data.history && data.history.length > 0) drawMovingAvgChart('personalMAChart', data.history);

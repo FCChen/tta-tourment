@@ -717,6 +717,13 @@ function computeFunStatistics(parsedGamesMap, allStats) {
     top2Pct: s.games > 0 ? parseFloat(((s.top2 / s.games) * 100).toFixed(1)) : 0
   }));
   const avg = (a) => a.length ? parseFloat((a.reduce((x, y) => x + y, 0) / a.length).toFixed(1)) : 0;
+  // avg / max / min / sample standard deviation of one rank's totals
+  const describe = (a) => {
+    if (!a.length) return { n: 0, avg: 0, max: 0, min: 0, std: 0 };
+    let m = a.reduce((x, y) => x + y, 0) / a.length;
+    let v = a.length > 1 ? a.reduce((x, y) => x + (y - m) * (y - m), 0) / (a.length - 1) : 0;
+    return { n: a.length, avg: parseFloat(m.toFixed(1)), max: Math.max.apply(null, a), min: Math.min.apply(null, a), std: parseFloat(Math.sqrt(v).toFixed(1)) };
+  };
   let correlation = [
     { key: "food", label: "🌾 食物總產量（扣除消耗）" },
     { key: "res", label: "⛏️ 礦物總產量" },
@@ -725,7 +732,8 @@ function computeFunStatistics(parsedGamesMap, allStats) {
     label: c.label,
     samples: corr[c.key].xs.length,
     r: pearson(corr[c.key].xs, corr[c.key].ys),
-    avgByRank: [1, 2, 3, 4].map(rk => avg(corr[c.key].byRank[rk]))
+    avgByRank: [1, 2, 3, 4].map(rk => avg(corr[c.key].byRank[rk])),
+    statsByRank: [1, 2, 3, 4].map(rk => describe(corr[c.key].byRank[rk]))
   }));
 
   let personalResult = {};

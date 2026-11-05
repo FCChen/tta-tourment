@@ -252,10 +252,10 @@
             <h3 class="section-title">🔍 數據分析：總產量與名次的相關性</h3>
             <div class="card table-wrapper">
                 <table class="data-table">
-                    <thead><tr><th style="text-align:left; padding-left:1rem;">指標</th><th>相關係數 r</th><th>第 1 名平均</th><th>第 2 名平均</th><th>第 3 名平均</th><th>第 4 名平均</th></tr></thead>
+                    <thead><tr><th style="text-align:left; padding-left:1rem;">指標</th><th>相關係數 r</th><th>第 1 名</th><th>第 2 名</th><th>第 3 名</th><th>第 4 名</th></tr></thead>
                     <tbody id="analysis-corr"></tbody>
                 </table>
-                <p class="analysis-note">* 名次 1~4 視為線性數值，計算每位玩家每場的「總產量」與名次的皮爾森相關係數。r 越接近 -1，代表產量越高、名次越前面；接近 0 代表幾乎無關。投降的玩家不列入。</p>
+                <p class="analysis-note">* 名次 1~4 視為線性數值，計算每位玩家每場的「總產量」與名次的皮爾森相關係數。r 越接近 -1，代表產量越高、名次越前面；接近 0 代表幾乎無關。投降的玩家不列入。<br>* 每格顯示：平均（粗體），下方為 最大 / 最小 / 標準差 σ。</p>
             </div>
         </div>
 
@@ -480,7 +480,7 @@
                     hint = c.r < 0 ? `${strength}相關：產量越高名次越前` : `${strength}相關`;
                     if (ar < 0.1) hint = "幾乎無相關";
                 }
-                return `<tr><td style="text-align:left; padding-left:1rem; font-weight:700;">${c.label}<div style="font-size:0.7rem; color:var(--text-muted); font-weight:400;">${hint}（${c.samples} 筆）</div></td><td style="font-weight:800; color:var(--primary);">${r}</td>${c.avgByRank.map(v => `<td>${v}</td>`).join('')}</tr>`;
+                return `<tr><td style="text-align:left; padding-left:1rem; font-weight:700;">${c.label}<div style="font-size:0.7rem; color:var(--text-muted); font-weight:400;">${hint}（${c.samples} 筆）</div></td><td style="font-weight:800; color:var(--primary);">${r}</td>${(c.statsByRank || c.avgByRank.map(v => ({ avg: v }))).map(st => `<td><div style="font-weight:800;">${st.avg}</div>${st.n !== undefined ? `<div style="font-size:0.68rem; color:var(--text-muted); white-space:nowrap;">${st.max} / ${st.min} / σ${st.std}</div>` : ""}</td>`).join('')}</tr>`;
             }).join('');
         }
 

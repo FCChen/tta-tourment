@@ -369,7 +369,8 @@ function computeFunStatistics(parsedGamesMap, allStats) {
   let seats = [1, 2, 3, 4].map(n => ({ seat: n, games: 0, points: 0, first: 0, top2: 0 }));
   let personalSeats = {};
   // Production vs rank correlation samples
-  let corr = { food: { xs: [], ys: [], byRank: [[], [], [], [], []] }, res: { xs: [], ys: [], byRank: [[], [], [], [], []] }, sci: { xs: [], ys: [], byRank: [[], [], [], [], []] } };
+  let corr = {};
+  ["food", "res", "sci", "pop", "ca", "ma"].forEach(k => { corr[k] = { xs: [], ys: [], byRank: [[], [], [], [], []] }; });
 
   PLAYERS.forEach(p => {
     let st = {
@@ -424,7 +425,9 @@ function computeFunStatistics(parsedGamesMap, allStats) {
           if (rank <= 2) ps2.top2++;
         }
         if (ps.total_food_net !== undefined && !ps.resigned) {
-          [["food", ps.total_food_net], ["res", ps.total_resource], ["sci", ps.total_science]].forEach(([k, v]) => {
+          [["food", ps.total_food_net], ["res", ps.total_resource], ["sci", ps.total_science],
+           ["pop", ps.final_population], ["ca", ps.total_ca], ["ma", ps.total_ma]].forEach(([k, v]) => {
+            if (v === undefined) return;
             corr[k].xs.push(v); corr[k].ys.push(rank); corr[k].byRank[rank].push(v);
           });
         }
@@ -727,7 +730,10 @@ function computeFunStatistics(parsedGamesMap, allStats) {
   let correlation = [
     { key: "food", label: "🌾 食物總產量（扣除消耗）" },
     { key: "res", label: "⛏️ 礦物總產量" },
-    { key: "sci", label: "🔬 科學總產量" }
+    { key: "sci", label: "🔬 科學總產量" },
+    { key: "pop", label: "👥 最後總人口" },
+    { key: "ca", label: "⏳ 每回合行政點（白點）加總" },
+    { key: "ma", label: "🎖️ 每回合軍事點（紅點）加總" }
   ].map(c => ({
     label: c.label,
     samples: corr[c.key].xs.length,

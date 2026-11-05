@@ -1350,9 +1350,13 @@ def parse_gamestats_lines(
             "wars_won_defending": 0,       # 反打: war declared on me, but I won
             "wars_lost_defending": 0,
             "war_demolitions": 0,          # farms / mines / urban buildings destroyed right after declaring war
+            "war_demolitions_max": 0,      # most buildings destroyed in a single war-declaring turn
             "total_food_net": 0,           # sum over production phases of (food produced - food consumed)
             "total_resource": 0,           # sum of resource production
             "total_science": 0,            # sum of science production
+            "final_population": 0,         # population at game end (`ET_YTOK`: total yellow - yellow bank)
+            "total_ca": 0,                 # sum over rounds of civil actions available (`ET_ACT` arg 0)
+            "total_ma": 0,                 # sum over rounds of military actions available (`ET_ACT` arg 1)
             "rats_food_lost": 0,
             "dark_ages_science_lost": 0,
             "max_war_culture_gained": 0,
@@ -1387,6 +1391,8 @@ def parse_gamestats_lines(
     resign_order: List[int] = []
     pending_wars: List[Dict[str, int]] = []           # declared but not yet resolved wars
     war_turn: Dict[int, Tuple[int, int]] = {}         # slot -> (round, turn) in which it declared a war
+    war_demo_turn: Dict[Tuple[int, int, int], int] = defaultdict(int)
+    act_rounds: Dict[int, set] = defaultdict(set)
     DEMOLISH_TYPES = {"farm", "mine", "lab", "temple", "library", "theater", "arena"}
     WAR_RESULT_TAGS = {"WAR_CULT", "WAR_TER", "WAR_SCI", "WAR_HYB"}
 
@@ -1426,6 +1432,16 @@ def parse_gamestats_lines(
             continue
 
         # ---- v3 counters (independent of the handler chain below) ----
+        if tag == "ET_YTOK" and len(args) >= 2 and slot >= 0:
+            # `ET_YTOK <yellow tokens total> <yellow bank> ...` -> population = total - bank
+            # (verified LATADELUMA bala: R2 25-17 = 8 = 7 workers on cards + 1 idle; R19 20-0 = 20)
+            pstats[slot]["final_population"] = int(args[0]) - int(args[1])
+        if tag == "ET_ACT" and len(args) >= 2 and slot >= 0 and round_num not in act_rounds[slot]:
+            # `ET_ACT <CA available> <MA available> <CA left> <MA left>`; one entry per round
+            # (the final round is logged twice at game end -> de-duplicated)
+            act_rounds[slot].add(round_num)
+            pstats[slot]["total_ca"] += int(args[0])
+            pstats[slot]["total_ma"] += int(args[1])
         if tag == "P_EVENT" and slot >= 0:
             pstats[slot]["events_played"] += 1
         elif tag == "A_TAKE" and len(args) >= 4 and slot >= 0 and args[3] == "3":
@@ -1458,6 +1474,8 @@ def parse_gamestats_lines(
             info = load_card_db().get(int(args[0])) if args[0].isdigit() else None
             if info and info.get("type") in DEMOLISH_TYPES:
                 pstats[slot]["war_demolitions"] += 1
+                war_demo_turn[(slot, round_num, turn_num)] += 1
+                _upd(pstats[slot], "war_demolitions_max", war_demo_turn[(slot, round_num, turn_num)], round_num)
 
         # 1. Final Ranking (`EOG_ORDER <rank_1_to_4> ... <final_culture>`, e.g. `5 19 3 0 EOG_ORDER 1 0 0 231`)
         if tag == "EOG_ORDER" and len(args) >= 2 and slot >= 0:
